@@ -8,9 +8,10 @@ return new class extends Migration {
         Schema::create('whatsapp_numbers', function (Blueprint $table) {
             $table->id();
             $table->string('number');
-            $table->enum('status', ['active', 'inactive']);
+            $table->enum('status', ['active', 'inactive', 'scanning']);
             $table->string('qr_code')->nullable();
             $table->text('session_data')->nullable();
+            $table->timestamp('last_connected_at')->nullable();
             $table->timestamps();
         });
     }

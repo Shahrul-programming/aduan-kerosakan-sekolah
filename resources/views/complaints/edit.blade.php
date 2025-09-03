@@ -43,6 +43,17 @@
                 <option value="selesai" {{ $complaint->status == 'selesai' ? 'selected' : '' }}>Selesai</option>
             </select>
         </div>
+        <div class="mb-3">
+            <label for="assigned_to" class="form-label">Assign Kontraktor</label>
+            <select name="assigned_to" class="form-control">
+                <option value="">-- Tiada --</option>
+                @foreach($contractors as $contractor)
+                    <option value="{{ $contractor->id }}" {{ $complaint->assigned_to == $contractor->id ? 'selected' : '' }}>
+                        {{ $contractor->name }} ({{ $contractor->company_name }})
+                    </option>
+                @endforeach
+            </select>
+        </div>
         @include('complaints._media_upload')
         <button type="submit" class="btn btn-primary">Kemaskini</button>
         <a href="{{ route('complaints.index') }}" class="btn btn-secondary">Kembali</a>

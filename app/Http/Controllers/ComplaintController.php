@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Contractor;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Mail;
 
 class ComplaintController extends Controller
@@ -62,20 +64,8 @@ class ComplaintController extends Controller
 
         $complaint = \App\Models\Complaint::create($validated);
 
-        // Hantar notifikasi email kepada admin
-        $adminUsers = \App\Models\User::where('role', 'admin')->get();
-        foreach ($adminUsers as $admin) {
-            Mail::raw(
-                'Aduan baru telah dihantar: ' . $complaint->complaint_number . "\n" .
-                'Sekolah: ' . ($complaint->school->name ?? '-') . "\n" .
-                'Kategori: ' . $complaint->category . "\n" .
-                'Prioriti: ' . ucfirst($complaint->priority),
-                function ($message) use ($admin) {
-                    $message->to($admin->email)
-                        ->subject('Notifikasi Aduan Baru');
-                }
-            );
-        }
+        // Send notification email
+        NotificationService::sendNewComplaintNotification($complaint);
 
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dihantar.');
     }
@@ -96,7 +86,8 @@ class ComplaintController extends Controller
     {
         $complaint = \App\Models\Complaint::findOrFail($id);
         $schools = \App\Models\School::all();
-        return view('complaints.edit', compact('complaint', 'schools'));
+        $contractors = Contractor::all();
+        return view('complaints.edit', compact('complaint', 'schools', 'contractors'));
     }
 
     /**
@@ -112,6 +103,7 @@ class ComplaintController extends Controller
             'description' => 'required',
             'priority' => 'required',
             'status' => 'required',
+            'assigned_to' => 'nullable|exists:contractors,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'video' => 'nullable|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime|max:10240',
         ]);
@@ -124,6 +116,16 @@ class ComplaintController extends Controller
         }
 
         $complaint->update($validated);
+        
+        // Log aktiviti dan hantar notifikasi
+        if ($request->filled('assigned_to')) {
+            \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'assign kontraktor', $complaint->id);
+            NotificationService::sendAssignmentNotification($complaint->fresh());
+        }
+        if ($request->has('status')) {
+            \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'ubah status: ' . $request->status, $complaint->id);
+        }
+        
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dikemaskini.');
     }
 
@@ -135,5 +137,28 @@ class ComplaintController extends Controller
         $complaint = \App\Models\Complaint::findOrFail($id);
         $complaint->delete();
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dipadam.');
+    }
+
+    /**
+     * Kontraktor acknowledge tugasan (terima/tolak)
+     */
+    public function acknowledge(Request $request, $id)
+    {
+        $complaint = \App\Models\Complaint::findOrFail($id);
+        if (auth()->user()->role !== 'kontraktor' || $complaint->assigned_to != auth()->id()) {
+            abort(403);
+        }
+        $status = $request->input('acknowledge');
+        if (!in_array($status, ['accepted', 'rejected'])) {
+            return back()->with('error', 'Status tidak sah.');
+        }
+        $complaint->acknowledged_status = $status;
+        $complaint->acknowledged_at = now();
+        $complaint->save();
+        // Log aktiviti dan hantar notifikasi
+        $action = $status === 'accepted' ? 'Terima tugasan' : 'Tolak tugasan';
+        \App\Http\Controllers\ActivityLogController::log(auth()->id(), $action, $complaint->id);
+        NotificationService::sendAcknowledgeNotification($complaint);
+        return back()->with('success', 'Status acknowledge dikemaskini.');
     }
 }
