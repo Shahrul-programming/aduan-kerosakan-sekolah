@@ -24,6 +24,7 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
         return 'Dashboard Super Admin';
     });
     Route::resource('schools', App\Http\Controllers\SchoolController::class);
+    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
 });
 
 // Route untuk Pengurusan
