@@ -1,4 +1,3 @@
-
 <?php
 
 use App\Http\Controllers\ProfileController;
@@ -9,9 +8,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -69,6 +66,23 @@ Route::middleware(['auth', 'role:pengurusan'])->group(function () {
     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
     Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->name('reports.export.pdf');
     Route::get('/dashboard-analitik', [ReportController::class, 'dashboard'])->name('reports.dashboard');
+});
+
+// Route untuk Admin Sekolah
+Route::middleware(['auth', 'role:school_admin'])->group(function () {
+    Route::get('/school-admin', function () {
+        return 'Dashboard Admin Sekolah';
+    });
+    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
+    Route::get('complaints/review', function() {
+        return view('complaints.review');
+    })->name('complaints.review');
+    Route::get('complaints/prioritize', function() {
+        return view('complaints.prioritize');
+    })->name('complaints.prioritize');
+    Route::get('complaints/assign', function() {
+        return view('complaints.assign');
+    })->name('complaints.assign');
 });
 
 // Route untuk Kontraktor: progress update

@@ -11,6 +11,8 @@ class CreateSchoolsTable extends Migration {
             $table->string('code')->unique();
             $table->string('address');
             $table->string('phone')->nullable(); // Tambah phone supaya padan dengan factory/model
+            $table->string('email')->nullable();
+            $table->string('ppd')->nullable();
             $table->string('principal_name');
             $table->string('principal_phone');
             $table->string('hem_name');

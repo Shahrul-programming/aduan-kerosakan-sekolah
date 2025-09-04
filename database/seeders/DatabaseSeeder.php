@@ -15,36 +15,48 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
+        \App\Models\User::query()->delete();
+
         // Super Admin
-        User::factory()->create([
+        \App\Models\User::create([
             'name' => 'Super Admin',
             'email' => 'superadmin@demo.com',
             'role' => 'super_admin',
             'password' => bcrypt('password123'),
+            'email_verified_at' => now(),
         ]);
 
         // School Admin
-        User::factory()->create([
+        \App\Models\User::create([
             'name' => 'School Admin',
             'email' => 'schooladmin@demo.com',
             'role' => 'school_admin',
             'password' => bcrypt('password123'),
+            'email_verified_at' => now(),
         ]);
 
         // Contractor
-        User::factory()->create([
+        \App\Models\User::create([
             'name' => 'Contractor Demo',
             'email' => 'contractor@demo.com',
             'role' => 'contractor',
             'password' => bcrypt('password123'),
+            'email_verified_at' => now(),
         ]);
 
         // Technician
-        User::factory()->create([
+        \App\Models\User::create([
             'name' => 'Technician Demo',
             'email' => 'technician@demo.com',
             'role' => 'technician',
             'password' => bcrypt('password123'),
+            'email_verified_at' => now(),
+        ]);
+
+        // Seed schools and complaints
+        $this->call([
+            SchoolSeeder::class,
+            ComplaintSeeder::class,
         ]);
     }
 }
