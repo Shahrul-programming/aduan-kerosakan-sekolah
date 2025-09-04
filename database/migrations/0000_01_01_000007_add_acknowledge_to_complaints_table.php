@@ -3,7 +3,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+class AddAcknowledgeToComplaintsTable extends Migration {
     public function up(): void
     {
         Schema::table('complaints', function (Blueprint $table) {
@@ -18,4 +18,4 @@ return new class extends Migration {
             $table->dropColumn(['acknowledged_status', 'acknowledged_at']);
         });
     }
-};
+}

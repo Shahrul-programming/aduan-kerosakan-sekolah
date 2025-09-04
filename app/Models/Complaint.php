@@ -25,6 +25,13 @@ class Complaint extends Model
         return $this->belongsTo(User::class);
     }
 
+
+    // Relationship: assigned_to can be contractor OR technician (User)
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
     public function contractor()
     {
         return $this->belongsTo(Contractor::class, 'assigned_to');

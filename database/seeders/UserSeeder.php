@@ -16,22 +16,22 @@ class UserSeeder extends Seeder
             'role' => 'super_admin',
         ]);
         User::create([
-            'name' => 'Pengurusan Demo',
-            'email' => 'pengurusan@demo.com',
+            'name' => 'School Admin',
+            'email' => 'schooladmin@demo.com',
             'password' => Hash::make('password'),
-            'role' => 'pengurusan',
+            'role' => 'school_admin',
         ]);
         User::create([
-            'name' => 'Guru Demo',
-            'email' => 'guru@demo.com',
+            'name' => 'Contractor Demo',
+            'email' => 'contractor@demo.com',
             'password' => Hash::make('password'),
-            'role' => 'guru',
+            'role' => 'contractor',
         ]);
         User::create([
-            'name' => 'Kontraktor Demo',
-            'email' => 'kontraktor@demo.com',
+            'name' => 'Technician Demo',
+            'email' => 'technician@demo.com',
             'password' => Hash::make('password'),
-            'role' => 'kontraktor',
+            'role' => 'technician',
         ]);
     }
 }

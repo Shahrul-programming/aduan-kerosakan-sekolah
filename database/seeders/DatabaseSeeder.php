@@ -23,27 +23,27 @@ class DatabaseSeeder extends Seeder
             'password' => bcrypt('password123'),
         ]);
 
-        // Pengurusan (Admin)
+        // School Admin
         User::factory()->create([
-            'name' => 'Pengurusan Demo',
-            'email' => 'pengurusan@demo.com',
-            'role' => 'pengurusan',
+            'name' => 'School Admin',
+            'email' => 'schooladmin@demo.com',
+            'role' => 'school_admin',
             'password' => bcrypt('password123'),
         ]);
 
-        // Guru (User)
+        // Contractor
         User::factory()->create([
-            'name' => 'Guru Demo',
-            'email' => 'guru@demo.com',
-            'role' => 'guru',
+            'name' => 'Contractor Demo',
+            'email' => 'contractor@demo.com',
+            'role' => 'contractor',
             'password' => bcrypt('password123'),
         ]);
 
-        // Kontraktor
+        // Technician
         User::factory()->create([
-            'name' => 'Kontraktor Demo',
-            'email' => 'kontraktor@demo.com',
-            'role' => 'kontraktor',
+            'name' => 'Technician Demo',
+            'email' => 'technician@demo.com',
+            'role' => 'technician',
             'password' => bcrypt('password123'),
         ]);
     }

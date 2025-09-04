@@ -16,6 +16,12 @@ class ComplaintController extends Controller
     {
         $query = \App\Models\Complaint::with(['school', 'user']);
         $schools = \App\Models\School::all();
+
+        // Technician: only see complaints assigned to them
+        if (auth()->user()->role === 'technician') {
+            $query->where('assigned_to', auth()->id());
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
