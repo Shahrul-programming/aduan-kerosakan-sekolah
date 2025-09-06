@@ -8,6 +8,42 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Quick external check: write a short log entry when this route is hit.
+// Use this to determine whether requests for complaints debug routes reach the Laravel app
+Route::get('/ping-complaints-debug', function () {
+    \Log::info('ping-complaints-debug hit', ['ip' => request()->ip(), 'uri' => request()->getRequestUri()]);
+    return response()->json(['ok' => true, 'time' => now()->toDateTimeString()]);
+});
+
+// Test complaints routes without middleware to isolate the issue
+Route::get('/complaints-test-no-middleware', function () {
+    \Log::info('complaints-test-no-middleware hit');
+    return response()->json(['message' => 'No middleware complaints route works!', 'time' => now()->toDateTimeString()]);
+});
+
+Route::get('/complaints/test-no-middleware', function () {
+    \Log::info('complaints/test-no-middleware hit');
+    return response()->json(['message' => 'complaints/test-no-middleware works!', 'time' => now()->toDateTimeString()]);
+});
+
+// Temporary health and debug routes (remove after debugging)
+use Illuminate\Support\Facades\Route as RouteFacade;
+Route::get('/_health', function () {
+    return response('OK', 200);
+});
+Route::get('/debug-complaints-route', function () {
+    return response()->json([
+        'has_named_route' => RouteFacade::has('complaints.review'),
+        'all_complaint_routes' => collect(
+            RouteFacade::getRoutes()->getRoutes()
+        )->filter(function ($r) {
+            return str_contains($r->uri(), 'complaints');
+        })->map(function ($r) {
+            return [$r->methods(), $r->uri(), $r->getName(), $r->gatherMiddleware()];
+        })->values(),
+    ]);
+});
+
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -73,16 +109,55 @@ Route::middleware(['auth', 'role:school_admin'])->group(function () {
     Route::get('/school-admin', function () {
         return 'Dashboard Admin Sekolah';
     });
-    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
+    
+    // Simple test route without complaints prefix to test middleware
+    Route::get('/test-school-admin', function () {
+        $user = auth()->user();
+        return response()->json([
+            'message' => 'School admin middleware works!',
+            'authenticated' => auth()->check(),
+            'user_email' => $user ? $user->email : null,
+            'user_role' => $user ? $user->role : null,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    })->name('test.school.admin');
+    
+    // Static complaint admin pages (define before resource so they are not
+    // matched by the resource's {complaint} parameter)
     Route::get('complaints/review', function() {
         return view('complaints.review');
     })->name('complaints.review');
+    // Debug route to show current auth user info for troubleshooting session/middleware
+    Route::get('complaints/review-debug', function () {
+        \Log::info('complaints/review-debug route hit!', [
+            'request_uri' => request()->getRequestUri(),
+            'method' => request()->method(),
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent()
+        ]);
+        $user = auth()->user();
+        return response()->json([
+            'authenticated' => auth()->check(),
+            'user_email' => $user ? $user->email : null,
+            'user_role' => $user ? $user->role : null,
+            'route_hit' => true,
+            'timestamp' => now()->toDateTimeString()
+        ]);
+    })->name('complaints.review.debug');
     Route::get('complaints/prioritize', function() {
         return view('complaints.prioritize');
     })->name('complaints.prioritize');
     Route::get('complaints/assign', function() {
         return view('complaints.assign');
     })->name('complaints.assign');
+
+    // Resource route AFTER literal routes to prevent conflicts
+    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
+    
+    // API routes for dashboard actions
+    Route::patch('complaints/{complaint}/status', [App\Http\Controllers\ComplaintController::class, 'updateStatus'])->name('complaints.update.status');
+    Route::patch('complaints/{complaint}/priority', [App\Http\Controllers\ComplaintController::class, 'updatePriority'])->name('complaints.update.priority');
+    Route::get('complaints/{complaint}/assign', [App\Http\Controllers\ComplaintController::class, 'assignForm'])->name('complaints.assign.form');
 });
 
 // Route untuk Kontraktor: progress update

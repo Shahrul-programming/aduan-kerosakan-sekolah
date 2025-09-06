@@ -71,7 +71,7 @@ class DashboardController extends Controller
             'completedComplaints' => Complaint::where('school_id', $schoolId)->where('status', 'completed')->count(),
             'monthlyComplaints' => $monthlyComplaints,
             'urgentComplaints' => $urgentComplaints,
-            'recentComplaints' => Complaint::where('school_id', $schoolId)->with(['user'])->latest()->take(5)->get(),
+            'recentComplaints' => Complaint::where('school_id', $schoolId)->with(['user'])->latest()->take(10)->get(),
             'school' => $school
         ];
 

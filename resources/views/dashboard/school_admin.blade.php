@@ -143,24 +143,40 @@
             <!-- Recent Complaints -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mt-6">
                 <div class="p-6">
-                    <h3 class="text-lg font-semibold mb-4">Recent Complaints</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold">Recent Complaints</h3>
+                        <div class="flex space-x-2">
+                            <button onclick="refreshComplaints()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i> Refresh
+                            </button>
+                            <a href="{{ route('complaints.index') }}" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                                <i class="fas fa-list mr-1"></i> View All
+                            </a>
+                        </div>
+                    </div>
                     @if($recentComplaints->count() > 0)
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     @foreach($recentComplaints as $complaint)
-                                    <tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            #{{ $complaint->id }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-medium text-gray-900">{{ $complaint->title }}</div>
+                                            <div class="text-sm font-medium text-gray-900">{{ Str::limit($complaint->title, 40) }}</div>
+                                            <div class="text-sm text-gray-500">{{ $complaint->user ? $complaint->user->name : 'Unknown' }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -179,6 +195,8 @@
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                                 @if($complaint->status == 'pending') bg-yellow-100 text-yellow-800
+                                                @elseif($complaint->status == 'semakan') bg-purple-100 text-purple-800
+                                                @elseif($complaint->status == 'assigned') bg-indigo-100 text-indigo-800
                                                 @elseif($complaint->status == 'in_progress') bg-blue-100 text-blue-800
                                                 @elseif($complaint->status == 'completed') bg-green-100 text-green-800
                                                 @else bg-gray-100 text-gray-800 @endif">
@@ -187,6 +205,33 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {{ $complaint->created_at->format('M d, Y') }}
+                                            <div class="text-xs text-gray-400">{{ $complaint->created_at->format('h:i A') }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div class="flex space-x-2">
+                                                <a href="{{ route('complaints.show', $complaint->id) }}" 
+                                                   class="text-blue-600 hover:text-blue-900" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                @if($complaint->status == 'pending')
+                                                    <button onclick="reviewComplaint({{ $complaint->id }})" 
+                                                            class="text-purple-600 hover:text-purple-900" title="Review">
+                                                        <i class="fas fa-search"></i>
+                                                    </button>
+                                                @endif
+                                                @if(in_array($complaint->status, ['pending', 'semakan']))
+                                                    <button onclick="setPriority({{ $complaint->id }})" 
+                                                            class="text-yellow-600 hover:text-yellow-900" title="Set Priority">
+                                                        <i class="fas fa-star"></i>
+                                                    </button>
+                                                @endif
+                                                @if($complaint->status == 'semakan')
+                                                    <button onclick="assignContractor({{ $complaint->id }})" 
+                                                            class="text-green-600 hover:text-green-900" title="Assign">
+                                                        <i class="fas fa-user-plus"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -194,10 +239,76 @@
                             </table>
                         </div>
                     @else
-                        <p class="text-gray-500 text-center py-8">Tiada aduan terkini.</p>
+                        <div class="text-center py-8">
+                            <i class="fas fa-inbox text-gray-400 text-4xl mb-4"></i>
+                            <p class="text-gray-500">Tiada aduan terkini.</p>
+                            <a href="{{ route('complaints.create') }}" class="mt-2 inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                Submit Aduan Pertama
+                            </a>
+                        </div>
                     @endif
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- JavaScript for Dashboard Actions -->
+    <script>
+        function refreshComplaints() {
+            location.reload();
+        }
+
+        function reviewComplaint(id) {
+            if (confirm('Adakah anda ingin mula semakan aduan ini?')) {
+                // Update status to 'semakan'
+                fetch(`/complaints/${id}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ status: 'semakan' })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        refreshComplaints();
+                    }
+                });
+            }
+        }
+
+        function setPriority(id) {
+            const priority = prompt('Masukkan prioriti (urgent/tinggi/sederhana/rendah):');
+            if (priority && ['urgent', 'tinggi', 'sederhana', 'rendah'].includes(priority.toLowerCase())) {
+                fetch(`/complaints/${id}/priority`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ priority: priority.toLowerCase() })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        refreshComplaints();
+                    }
+                });
+            }
+        }
+
+        function assignContractor(id) {
+            // Simple redirect to assign page - you can make this more sophisticated
+            window.location.href = `/complaints/${id}/assign`;
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            // Only refresh if user is active (to avoid unnecessary requests)
+            if (document.visibilityState === 'visible') {
+                refreshComplaints();
+            }
+        }, 30000);
+    </script>
 </x-app-layout>

@@ -50,16 +50,21 @@ class ComplaintController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'complaint_number' => 'required|unique:complaints',
+            'title' => 'required|string|max:255',
             'school_id' => 'required|exists:schools,id',
-            'category' => 'required',
-            'description' => 'required',
-            'priority' => 'required',
+            'category' => 'required|string',
+            'description' => 'required|string',
+            'priority' => 'required|in:urgent,tinggi,sederhana,rendah',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'video' => 'nullable|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime|max:10240',
         ]);
+        
+        // Auto-generate complaint number
+        $validated['complaint_number'] = $this->generateComplaintNumber();
         $validated['user_id'] = auth()->id();
+        $validated['reported_by'] = auth()->id();
         $validated['status'] = 'baru';
+        $validated['reported_at'] = now();
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('complaint_images', 'public');
@@ -74,6 +79,34 @@ class ComplaintController extends Controller
         NotificationService::sendNewComplaintNotification($complaint);
 
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dihantar.');
+    }
+
+    /**
+     * Generate unique complaint number
+     */
+    private function generateComplaintNumber()
+    {
+        $year = date('Y');
+        $month = date('m');
+        
+        // Format: ADU-YYYY-MM-XXXX (e.g., ADU-2025-09-0001)
+        $prefix = "ADU-{$year}-{$month}-";
+        
+        // Get the last complaint number for this month
+        $lastComplaint = \App\Models\Complaint::where('complaint_number', 'like', $prefix . '%')
+            ->orderBy('complaint_number', 'desc')
+            ->first();
+        
+        if ($lastComplaint) {
+            // Extract the sequence number and increment
+            $lastNumber = (int) substr($lastComplaint->complaint_number, -4);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        // Format with leading zeros
+        return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -166,5 +199,42 @@ class ComplaintController extends Controller
         \App\Http\Controllers\ActivityLogController::log(auth()->id(), $action, $complaint->id);
         NotificationService::sendAcknowledgeNotification($complaint);
         return back()->with('success', 'Status acknowledge dikemaskini.');
+    }
+
+    /**
+     * Update complaint status via API (for dashboard actions)
+     */
+    public function updateStatus(Request $request, \App\Models\Complaint $complaint)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,semakan,assigned,in_progress,completed'
+        ]);
+
+        $complaint->update(['status' => $request->status]);
+        
+        return response()->json(['success' => true, 'message' => 'Status updated successfully']);
+    }
+
+    /**
+     * Update complaint priority via API (for dashboard actions)
+     */
+    public function updatePriority(Request $request, \App\Models\Complaint $complaint)
+    {
+        $request->validate([
+            'priority' => 'required|in:urgent,tinggi,sederhana,rendah'
+        ]);
+
+        $complaint->update(['priority' => $request->priority]);
+        
+        return response()->json(['success' => true, 'message' => 'Priority updated successfully']);
+    }
+
+    /**
+     * Show assign contractor form
+     */
+    public function assignForm(\App\Models\Complaint $complaint)
+    {
+        $contractors = \App\Models\User::where('role', 'kontraktor')->get();
+        return view('complaints.assign_form', compact('complaint', 'contractors'));
     }
 }
