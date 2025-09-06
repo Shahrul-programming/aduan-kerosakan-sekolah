@@ -5,6 +5,11 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Dashboard Super Admin</h1>
+        @if(auth()->user() && auth()->user()->role === 'super_admin')
+            <a href="{{ route('users.create') }}" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg shadow transition duration-150">
+                <i class="fas fa-user-plus mr-2"></i> Tambah Pengguna
+            </a>
+        @endif
     </div>
 
     <!-- Statistics Cards -->

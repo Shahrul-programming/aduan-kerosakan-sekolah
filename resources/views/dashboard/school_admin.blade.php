@@ -103,6 +103,10 @@
                                 <i class="fas fa-file-download text-gray-500 mr-3"></i>
                                 <span class="text-gray-700 font-medium">Muat Turun Laporan</span>
                             </a>
+                            <a href="{{ route('schools.qr', auth()->user()->school->id ?? 0) }}" class="flex items-center p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                                <i class="fas fa-qrcode text-green-500 mr-3"></i>
+                                <span class="text-green-700 font-medium">Generate QR Code Guru</span>
+                            </a>
                             <a href="{{ route('complaints.create') }}" class="flex items-center p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                                 <i class="fas fa-plus-circle text-blue-500 mr-3"></i>
                                 <span class="text-blue-700 font-medium">Submit New Complaint</span>

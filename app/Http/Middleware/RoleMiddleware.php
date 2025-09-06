@@ -16,6 +16,13 @@ class RoleMiddleware
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
         $user = auth()->user();
+        \Log::info('RoleMiddleware', [
+            'user_id' => $user ? $user->id : null,
+            'user_email' => $user ? $user->email : null,
+            'user_role' => $user ? $user->role : null,
+            'expected_roles' => $roles,
+            'uri' => $request->getRequestUri(),
+        ]);
         if (!$user || !in_array($user->role, $roles)) {
             abort(403, 'Unauthorized');
         }

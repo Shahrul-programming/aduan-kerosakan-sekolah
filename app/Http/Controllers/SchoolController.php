@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -86,5 +85,14 @@ class SchoolController extends Controller
         $school = \App\Models\School::findOrFail($id);
         $school->delete();
         return redirect()->route('schools.index')->with('success', 'Sekolah berjaya dipadam');
+    }
+
+    /**
+     * Display QR code for school registration
+     */
+    public function qrCode($school)
+    {
+        $schoolObj = \App\Models\School::findOrFail($school);
+        return view('schools.qr', compact('schoolObj'));
     }
 }

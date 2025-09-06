@@ -1,3 +1,5 @@
+    // Paparan QR code pendaftaran guru/user sekolah
+    Route::get('/schools/{school}/qr', [App\Http\Controllers\SchoolController::class, 'qrCode'])->name('schools.qr');
 <?php
 
 use App\Http\Controllers\ProfileController;
@@ -60,6 +62,10 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::resource('schools', App\Http\Controllers\SchoolController::class);
     Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
     
+    // User management (super admin)
+    Route::get('/users/create', [App\Http\Controllers\UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [App\Http\Controllers\UserController::class, 'store'])->name('users.store');
+
     // WhatsApp Management routes
     Route::get('/whatsapp', [\App\Http\Controllers\WhatsappController::class, 'index'])->name('whatsapp.index');
     Route::post('/whatsapp', [\App\Http\Controllers\WhatsappController::class, 'store'])->name('whatsapp.store');
@@ -115,12 +121,13 @@ Route::middleware(['auth', 'role:school_admin'])->group(function () {
         $user = auth()->user();
         return response()->json([
             'message' => 'School admin middleware works!',
-            'authenticated' => auth()->check(),
-            'user_email' => $user ? $user->email : null,
-            'user_role' => $user ? $user->role : null,
-            'timestamp' => now()->toDateTimeString()
-        ]);
-    })->name('test.school.admin');
+                'user_email' => $user ? $user->email : null,
+                'user_role' => $user ? $user->role : null,
+                'timestamp' => now()->toDateTimeString()
+            ]);
+        })->name('test.school.admin');
+
+    // ...existing code...
     
     // Static complaint admin pages (define before resource so they are not
     // matched by the resource's {complaint} parameter)
