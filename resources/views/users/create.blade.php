@@ -21,8 +21,13 @@
             <select name="role" class="w-full border rounded px-3 py-2" required>
                 <option value="school_admin">Admin Sekolah</option>
                 <option value="guru">Guru/Staff</option>
+                @if(isset($user) && in_array($user->role, ['school_admin','super_admin']))
+                    <option value="kontraktor">Kontraktor</option>
+                @endif
             </select>
         </div>
+
+        @if(isset($user) && $user->role === 'super_admin')
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Sekolah</label>
             <select name="school_id" class="w-full border rounded px-3 py-2" required>
@@ -31,6 +36,7 @@
                 @endforeach
             </select>
         </div>
+        @endif
         <div class="mb-4">
             <label class="block text-sm font-medium mb-1">Password</label>
             <input type="password" name="password" class="w-full border rounded px-3 py-2" required>
