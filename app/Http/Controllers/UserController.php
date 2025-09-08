@@ -5,6 +5,8 @@ use App\Models\User;
 use App\Models\School;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -39,8 +41,20 @@ class UserController extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'nullable',
             'role' => 'required|in:' . implode(',', $allowedRoles),
-            'password' => 'required|confirmed|min:6',
         ];
+
+        // Password required when creating non-kontraktor OR when super_admin creates a kontraktor
+        $passwordRequired = false;
+        if (!$request->filled('role') || $request->role !== 'kontraktor') {
+            $passwordRequired = true;
+        } elseif ($request->role === 'kontraktor' && $user && $user->role === 'super_admin') {
+            // super_admin may set password manually for kontraktor
+            $passwordRequired = true;
+        }
+
+        if ($passwordRequired) {
+            $rules['password'] = 'required|confirmed|min:6';
+        }
 
         // Only super_admin must provide school_id; school_admin's created users inherit their school
         if ($user && $user->role === 'super_admin') {
@@ -56,15 +70,49 @@ class UserController extends Controller
             $schoolId = $request->school_id;
         }
 
-        User::create([
+        $userData = [
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'role' => $request->role,
             'school_id' => $schoolId,
-            'password' => Hash::make($request->password),
-        ]);
+        ];
 
-        return redirect()->route('schools.index')->with('success', 'Pengguna berjaya ditambah');
+        // If role is kontraktor: branch by creator role
+        if ($request->role === 'kontraktor') {
+            // If creator is super_admin, allow manual password set
+            if ($user && $user->role === 'super_admin') {
+                $userData['password'] = Hash::make($request->password);
+                User::create($userData);
+                return redirect()->route('schools.index')->with('success', 'Pengguna (kontraktor) berjaya ditambah.');
+            }
+
+            // For school_admin (or others), create kontraktor user and send reset invite
+            $cUser = User::firstOrNew(['email' => $request->email]);
+            $cUser->fill($userData);
+            if (!$cUser->exists) {
+                $cUser->password = Hash::make(Str::random(24));
+            }
+            $cUser->save();
+
+            $status = Password::sendResetLink(['email' => $request->email]);
+
+            $flash = ['success' => 'Pengguna (kontraktor) berjaya ditambah.'];
+            if ($status === Password::RESET_LINK_SENT) {
+                $flash['notice'] = 'Emel jemputan telah dihantar kepada kontraktor untuk menetapkan kata laluan.';
+            } else {
+                $flash['warning'] = 'Kontraktor dicipta tetapi jemputan e-mel tidak berjaya dihantar.';
+            }
+
+            $redirectRoute = ($user && $user->role === 'super_admin') ? 'schools.index' : 'dashboard';
+            return redirect()->route($redirectRoute)->with($flash);
+        }
+
+        // Other roles: create with provided password
+        $userData['password'] = Hash::make($request->password);
+    User::create($userData);
+
+    $redirectRoute = ($user && $user->role === 'super_admin') ? 'schools.index' : 'dashboard';
+    return redirect()->route($redirectRoute)->with('success', 'Pengguna berjaya ditambah');
     }
 }

@@ -16,6 +16,8 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- allow pages to push additional styles --}}
+    @stack('styles')
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -34,6 +36,8 @@
             <main>
                 @yield('content', $slot ?? '')
             </main>
+        {{-- allow pages to push scripts (lightbox, inline page scripts) --}}
+        @stack('scripts')
         </div>
     </body>
 </html>

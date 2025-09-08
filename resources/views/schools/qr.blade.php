@@ -11,6 +11,10 @@
             <i class="fas fa-qrcode text-6xl text-gray-400"></i>
             <div class="mt-2 text-gray-500">QR code akan dipaparkan di sini</div>
         </div>
+        <div class="mt-4">
+            <span class="block text-blue-700 font-semibold">Link Pendaftaran Guru:</span>
+            <a href="{{ url('/daftar-guru/' . $schoolObj->code) }}" class="text-blue-600 underline break-all">{{ url('/daftar-guru/' . $schoolObj->code) }}</a>
+        </div>
     </div>
     <div class="flex justify-center gap-4">
         <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Download PNG</button>

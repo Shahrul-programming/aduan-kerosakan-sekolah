@@ -20,7 +20,12 @@ class DashboardController extends Controller
                 return $this->superAdminDashboard();
             case 'school_admin':
                 return $this->schoolAdminDashboard();
+            // teacher/guru have their own dashboard with complaint form
+            case 'guru':
+            case 'teacher':
+                return $this->teacherDashboard();
             case 'contractor':
+            case 'kontraktor':
                 return $this->contractorDashboard();
             case 'technician':
                 return $this->technicianDashboard();
@@ -31,27 +36,31 @@ class DashboardController extends Controller
 
     private function superAdminDashboard()
     {
-        $totalComplaints = Complaint::count();
-        $completedComplaints = Complaint::where('status', 'completed')->count();
-        $completionRate = $totalComplaints > 0 ? round(($completedComplaints / $totalComplaints) * 100, 2) : 0;
+        $total_complaints = Complaint::count();
+        $completed_complaints = Complaint::where('status', 'completed')->count();
+        $completion_rate = $total_complaints > 0 ? round(($completed_complaints / $total_complaints) * 100, 2) : 0;
         $stats = [
-            'totalComplaints' => $totalComplaints,
-            'pendingComplaints' => Complaint::where('status', 'pending')->count(),
-            'inProgressComplaints' => Complaint::where('status', 'in_progress')->count(),
-            'completedComplaints' => $completedComplaints,
-            'completionRate' => $completionRate,
-            'totalSchools' => School::count(),
-            'totalUsers' => User::count(),
-            'recentComplaints' => Complaint::with(['school', 'user'])->latest()->take(5)->get()
+            'total_complaints' => $total_complaints,
+            'pending_complaints' => Complaint::where('status', 'pending')->count(),
+            'in_progress_complaints' => Complaint::where('status', 'in_progress')->count(),
+            'completed_complaints' => $completed_complaints,
+            'completion_rate' => $completion_rate,
+            'total_schools' => School::count(),
+            'total_users' => User::count(),
+            'recent_complaints' => Complaint::with(['school', 'user'])->latest()->take(5)->get()
         ];
 
-        return view('dashboard.super_admin', $stats);
+        return view('dashboards.super-admin', ['stats' => $stats]);
     }
 
     private function schoolAdminDashboard()
     {
         $user = Auth::user();
-        $school = $user->school;
+        // Resolve school via relationship if present, otherwise fetch by school_id
+        $school = $user->school ?? null;
+        if (!$school && $user->school_id) {
+            $school = School::find($user->school_id);
+        }
         $schoolId = $school ? $school->id : 0;
 
         // Calculate additional statistics
@@ -59,48 +68,56 @@ class DashboardController extends Controller
             ->whereMonth('created_at', now()->month)
             ->count();
         $urgentComplaints = Complaint::where('school_id', $schoolId)
-            ->where('priority', 'urgent')
+            ->whereIn('priority', ['urgent', 'tinggi'])
             ->count();
 
+        // Accept both English and Malay status values to be resilient to mixed data
         $stats = [
-            'totalComplaints' => Complaint::where('school_id', $schoolId)->count(),
-            'pendingComplaints' => Complaint::where('school_id', $schoolId)->where('status', 'pending')->count(),
-            'reviewComplaints' => Complaint::where('school_id', $schoolId)->where('status', 'semakan')->count(),
-            'assignedComplaints' => Complaint::where('school_id', $schoolId)->where('status', 'assigned')->count(),
-            'inProgressComplaints' => Complaint::where('school_id', $schoolId)->where('status', 'in_progress')->count(),
-            'completedComplaints' => Complaint::where('school_id', $schoolId)->where('status', 'completed')->count(),
-            'monthlyComplaints' => $monthlyComplaints,
-            'urgentComplaints' => $urgentComplaints,
-            'recentComplaints' => Complaint::where('school_id', $schoolId)->with(['user'])->latest()->take(10)->get(),
+            'total_complaints' => Complaint::where('school_id', $schoolId)->count(),
+            'pending_complaints' => Complaint::where('school_id', $schoolId)->whereIn('status', ['pending', 'baru'])->count(),
+            'review_complaints' => Complaint::where('school_id', $schoolId)->whereIn('status', ['semakan', 'review'])->count(),
+            'assigned_complaints' => Complaint::where('school_id', $schoolId)->whereIn('status', ['assigned', 'ditugaskan'])->count(),
+            'in_progress_complaints' => Complaint::where('school_id', $schoolId)->whereIn('status', ['in_progress', 'dalam_proses'])->count(),
+            'completed_complaints' => Complaint::where('school_id', $schoolId)->whereIn('status', ['completed', 'selesai'])->count(),
+            'monthly_complaints' => $monthlyComplaints,
+            'urgent_complaints' => $urgentComplaints,
+            'recent_complaints' => Complaint::where('school_id', $schoolId)->with(['user'])->latest()->take(10)->get(),
             'school' => $school
         ];
 
-        return view('dashboard.school_admin', $stats);
+    return view('dashboards.school-admin', ['stats' => $stats]);
     }
 
     private function contractorDashboard()
     {
+        // Resolve assigned identifier: prefer contractor.id when user has linked contractor
+        $user = Auth::user();
+        $assignedIdentifier = Auth::id();
+        if (method_exists($user, 'contractor') && $user->contractor) {
+            $assignedIdentifier = $user->contractor->id;
+        }
+
         // Calculate additional statistics
-        $monthlyTasks = Complaint::where('contractor_id', Auth::id())
+        $monthlyTasks = Complaint::where('assigned_to', $assignedIdentifier)
             ->whereMonth('created_at', now()->month)
             ->count();
         $completionRate = 85; // Sample rate
-        $urgentTasks = Complaint::where('contractor_id', Auth::id())
+        $urgentTasks = Complaint::where('assigned_to', Auth::id())
             ->where('priority', 'urgent')
             ->count();
             
         $stats = [
-            'assignedComplaints' => Complaint::where('contractor_id', Auth::id())->count(),
-            'pendingComplaints' => Complaint::where('contractor_id', Auth::id())->where('status', 'pending')->count(),
-            'inProgressComplaints' => Complaint::where('contractor_id', Auth::id())->where('status', 'in_progress')->count(),
-            'completedComplaints' => Complaint::where('contractor_id', Auth::id())->where('status', 'completed')->count(),
-            'monthlyTasks' => $monthlyTasks,
-            'completionRate' => $completionRate,
-            'urgentTasks' => $urgentTasks,
-            'recentComplaints' => Complaint::where('contractor_id', Auth::id())->with(['school', 'user'])->latest()->take(5)->get()
+            'assigned_complaints' => Complaint::where('assigned_to', $assignedIdentifier)->count(),
+            'pending_complaints' => Complaint::where('assigned_to', $assignedIdentifier)->where('status', 'pending')->count(),
+            'in_progress_complaints' => Complaint::where('assigned_to', $assignedIdentifier)->where('status', 'in_progress')->count(),
+            'completed_complaints' => Complaint::where('assigned_to', $assignedIdentifier)->where('status', 'completed')->count(),
+            'monthly_tasks' => $monthlyTasks,
+            'completion_rate' => $completionRate,
+            'urgent_tasks' => $urgentTasks,
+            'recent_complaints' => Complaint::where('assigned_to', $assignedIdentifier)->with(['school', 'user'])->latest()->take(5)->get()
         ];
 
-        return view('dashboard.contractor', $stats);
+    return view('dashboards.contractor', ['stats' => $stats]);
     }
 
     private function technicianDashboard()
@@ -129,6 +146,15 @@ class DashboardController extends Controller
             'recentComplaints' => Complaint::where('technician_id', Auth::id())->with(['school', 'user'])->latest()->take(5)->get()
         ];
 
-        return view('dashboard.technician', $stats);
+    return view('dashboards.technician', ['stats' => $stats]);
+    }
+
+    /**
+     * Dashboard for teacher role: show complaint form and their own complaints
+     */
+    private function teacherDashboard()
+    {
+        $stats = [];
+    return view('dashboards.teacher', ['stats' => $stats]);
     }
 }

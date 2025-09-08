@@ -94,19 +94,15 @@
                     <div class="p-6">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Tindakan Pantas</h3>
                         <div class="grid grid-cols-2 gap-4">
-                            <a href="{{ route('complaints.create') }}" class="flex items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition">
-                                <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Aduan Baru</span>
-                            </a>
+                            @php $me = auth()->user(); @endphp
+                            <!-- Quick action 'Aduan Baru' removed for school admin; teachers should use their dashboard to submit complaints -->
                             <a href="{{ route('complaints.index') }}" class="flex items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition">
                                 <svg class="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                 </svg>
                                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Lihat Aduan</span>
                             </a>
-                            <a href="{{ route('reports.summary') }}" class="flex items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition">
+                            <a href="{{ route('reports.index') }}" class="flex items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition">
                                 <svg class="w-6 h-6 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                 </svg>
@@ -118,6 +114,24 @@
                                 </svg>
                                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Profil</span>
                             </a>
+                            {{-- Daftar Kontraktor (school admin only) --}}
+                            @if(auth()->check() && auth()->user()->role === 'school_admin')
+                            <a href="{{ route('contractors.create') }}" class="flex items-center p-3 bg-green-50 dark:bg-green-900/10 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/20 transition">
+                                <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Daftar Kontraktor</span>
+                            </a>
+                            @endif
+                            {{-- Daftar Guru (school admin) --}}
+                            @if(auth()->check() && auth()->user()->role === 'school_admin' && isset($stats['school']))
+                            <a href="{{ route('users.create') }}?role=guru&school_id={{ $stats['school']->id }}" class="flex items-center p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition">
+                                <svg class="w-6 h-6 text-indigo-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Daftar Guru</span>
+                            </a>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -133,8 +147,36 @@
                                 <div class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['school']->name }}</div>
                             </div>
                             <div>
+                                <span class="text-gray-600 dark:text-gray-400">Kod Sekolah:</span>
+                                <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->code ?? '—' }}</div>
+                            </div>
+                            <div>
                                 <span class="text-gray-600 dark:text-gray-400">Alamat:</span>
                                 <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->address }}</div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-gray-600 dark:text-gray-400">Pengetua / PPD:</span>
+                                    <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->principal_name ?? '—' }} @if($stats['school']->ppd) ({{ $stats['school']->ppd }}) @endif</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600 dark:text-gray-400">Telefon Pengetua:</span>
+                                    <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->principal_phone ?? '—' }}</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-gray-600 dark:text-gray-400">HEM:</span>
+                                    <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->hem_name ?? '—' }}</div>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600 dark:text-gray-400">Telefon HEM:</span>
+                                    <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->hem_phone ?? '—' }}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="text-gray-600 dark:text-gray-400">E-mel Sekolah:</span>
+                                <div class="text-gray-900 dark:text-gray-100">{{ $stats['school']->email ?? '—' }}</div>
                             </div>
                             <div>
                                 <span class="text-gray-600 dark:text-gray-400">Kadar Selesai:</span>
@@ -144,7 +186,22 @@
                             </div>
                         </div>
                         @else
-                        <p class="text-gray-600 dark:text-gray-400">Maklumat sekolah tidak tersedia.</p>
+                        <div class="rounded-md bg-red-50 dark:bg-red-900/30 p-4 border border-red-200 dark:border-red-800">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.516 9.8A1.75 1.75 0 0116.516 16H3.484a1.75 1.75 0 01-1.743-2.101l5.516-9.8zM11 13a1 1 0 10-2 0 1 1 0 002 0zm-1-8a1 1 0 00-.993.883L8.01 7h3.98l-.0.883A1 1 0 0010 5z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-semibold text-red-800 dark:text-red-200">Akaun anda belum dikaitkan dengan mana-mana sekolah</h4>
+                                    <div class="mt-1 text-sm text-red-700 dark:text-red-200">Sila kemaskini profil anda atau hubungi pentadbir untuk pautan ke sekolah. Tanpa pautan sekolah, anda tidak akan menerima maklumat aduan untuk sekolah.</div>
+                                    <div class="mt-3">
+                                        <a href="{{ route('profile.edit') }}" class="inline-flex items-center px-3 py-2 bg-red-600 text-white rounded-md text-sm">Kemas kini Profil</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         @endif
                     </div>
                 </div>
@@ -173,7 +230,7 @@
                                         #{{ $complaint->id }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                        {{ Str::limit($complaint->issue_description, 50) }}
+                                        {{ Str::limit($complaint->description ?? $complaint->issue_description ?? '—', 50) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -210,8 +267,9 @@
                     </svg>
                     <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Tiada aduan lagi</h3>
                     <p class="text-gray-600 dark:text-gray-400 mb-4">Belum ada aduan yang dibuat untuk sekolah ini.</p>
-                    <a href="{{ route('complaints.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
-                        Buat Aduan Pertama
+                    <p class="text-sm text-gray-600 mb-3">Guru perlu menggunakan dashboard masing-masing untuk membuat aduan. Anda boleh melihat semua aduan untuk sekolah ini di halaman aduan.</p>
+                    <a href="{{ route('complaints.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">
+                        Lihat Aduan Sekolah
                     </a>
                 </div>
             </div>

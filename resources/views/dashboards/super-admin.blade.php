@@ -5,6 +5,12 @@
         </h2>
     </x-slot>
 
+    @php
+        // Ensure $stats is always an array to avoid undefined array key errors
+        $stats = $stats ?? [];
+        $recent = $stats['recent_complaints'] ?? collect();
+    @endphp
+
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Statistics Cards -->
@@ -23,7 +29,7 @@
                             </div>
                             <div class="ml-4">
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Aduan</dt>
-                                <dd class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $stats['total_complaints'] }}</dd>
+                                <dd class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ $stats['total_complaints'] ?? 0 }}</dd>
                             </div>
                         </div>
                     </div>
@@ -42,7 +48,7 @@
                             </div>
                             <div class="ml-4">
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Menunggu</dt>
-                                <dd class="text-2xl font-bold text-yellow-600">{{ $stats['pending_complaints'] }}</dd>
+                                <dd class="text-2xl font-bold text-yellow-600">{{ $stats['pending_complaints'] ?? 0 }}</dd>
                             </div>
                         </div>
                     </div>
@@ -61,7 +67,7 @@
                             </div>
                             <div class="ml-4">
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Dalam Proses</dt>
-                                <dd class="text-2xl font-bold text-blue-600">{{ $stats['in_progress_complaints'] }}</dd>
+                                <dd class="text-2xl font-bold text-blue-600">{{ $stats['in_progress_complaints'] ?? 0 }}</dd>
                             </div>
                         </div>
                     </div>
@@ -80,7 +86,7 @@
                             </div>
                             <div class="ml-4">
                                 <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Selesai</dt>
-                                <dd class="text-2xl font-bold text-green-600">{{ $stats['completed_complaints'] }}</dd>
+                                <dd class="text-2xl font-bold text-green-600">{{ $stats['completed_complaints'] ?? 0 }}</dd>
                             </div>
                         </div>
                     </div>
@@ -106,7 +112,13 @@
                                 </svg>
                                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Urus Sekolah</span>
                             </a>
-                            <a href="{{ route('reports.summary') }}" class="flex items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition">
+                            <a href="{{ route('contractors.manage.index') }}" class="flex items-center p-3 bg-gray-50 dark:bg-gray-900/20 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900/30 transition">
+                                <svg class="w-6 h-6 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"></path>
+                                </svg>
+                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">Urus Kontraktor</span>
+                            </a>
+                            <a href="{{ route('reports.index') }}" class="flex items-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition">
                                 <svg class="w-6 h-6 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                                 </svg>
@@ -129,16 +141,16 @@
                         <div class="space-y-3">
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Jumlah Sekolah:</span>
-                                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['total_schools'] }}</span>
+                                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['total_schools'] ?? 0 }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Jumlah Pengguna:</span>
-                                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['total_users'] }}</span>
+                                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $stats['total_users'] ?? 0 }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600 dark:text-gray-400">Kadar Selesai:</span>
                                 <span class="font-semibold text-green-600">
-                                    {{ $stats['total_complaints'] > 0 ? round(($stats['completed_complaints'] / $stats['total_complaints']) * 100, 1) : 0 }}%
+                                    {{ ($stats['total_complaints'] ?? 0) > 0 ? round((($stats['completed_complaints'] ?? 0) / ($stats['total_complaints'] ?? 1)) * 100, 1) : 0 }}%
                                 </span>
                             </div>
                         </div>
@@ -147,7 +159,7 @@
             </div>
 
             <!-- Recent Complaints -->
-            @if($stats['recent_complaints']->count() > 0)
+            @if($recent->count() > 0)
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Aduan Terkini</h3>
@@ -163,7 +175,7 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @foreach($stats['recent_complaints'] as $complaint)
+                                @foreach($recent as $complaint)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                                         #{{ $complaint->id }}
@@ -172,7 +184,7 @@
                                         {{ $complaint->school->name ?? 'N/A' }}
                                     </td>
                                     <td class="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                                        {{ Str::limit($complaint->issue_description, 50) }}
+                                        {{ \Illuminate\Support\Str::limit($complaint->issue_description, 50) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 

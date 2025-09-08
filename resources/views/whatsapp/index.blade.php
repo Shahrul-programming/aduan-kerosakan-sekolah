@@ -1,98 +1,87 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>📱 Pengurusan WhatsApp</h1>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNumberModal">
-                    ➕ Tambah Nombor
-                </button>
-            </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">📱 Pengurusan WhatsApp</h1>
+        <div>
+            <button id="openAddModalBtn" class="inline-flex items-center gap-2 px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none" type="button">➕ Tambah Nombor</button>
+        </div>
+    </div>
 
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
+    @if(session('success'))
+        <div class="mb-4 p-4 rounded bg-green-50 text-green-800">{{ session('success') }}</div>
+    @endif
 
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
+    @if(session('error'))
+        <div class="mb-4 p-4 rounded bg-red-50 text-red-800">{{ session('error') }}</div>
+    @endif
 
-            <!-- WhatsApp Numbers Table -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">📋 Senarai Nombor WhatsApp</h5>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+                <div class="px-4 py-4 sm:px-6 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-medium text-gray-900 dark:text-gray-100">📋 Senarai Nombor WhatsApp</h2>
+                        <p class="text-xs text-gray-500">Senarai dan status sambungan</p>
+                    </div>
+                    <div class="text-sm text-gray-500"></div>
                 </div>
-                <div class="card-body">
+                <div class="px-4 py-4 sm:px-6">
                     @if($whatsappNumbers->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
                                     <tr>
-                                        <th>📱 Nombor</th>
-                                        <th>📊 Status</th>
-                                        <th>🕐 Sambungan Terakhir</th>
-                                        <th>🔗 QR Code</th>
-                                        <th>⚙️ Tindakan</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">📱 Nombor</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">📊 Status</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">🕐 Sambungan</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">🔗 QR</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">⚙️ Tindakan</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                     @foreach($whatsappNumbers as $number)
                                     <tr>
-                                        <td>+{{ $number->number }}</td>
-                                        <td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">+{{ $number->number }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
                                             @if($number->status === 'active')
-                                                <span class="badge bg-success">🟢 Aktif</span>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">🟢 Aktif</span>
                                             @elseif($number->status === 'scanning')
-                                                <span class="badge bg-warning">🔄 Scan QR</span>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">🔄 Scan QR</span>
                                             @else
-                                                <span class="badge bg-danger">🔴 Tidak Aktif</span>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">🔴 Tidak Aktif</span>
                                             @endif
                                         </td>
-                                        <td>
-                                            {{ $number->last_connected_at ? $number->last_connected_at->format('d/m/Y H:i') : '-' }}
-                                        </td>
-                                        <td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $number->last_connected_at ? $number->last_connected_at->format('d/m/Y H:i') : '-' }}</td>
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
                                             @if($number->qr_code && $number->status === 'scanning')
-                                                <button class="btn btn-sm btn-info" onclick="showQR('{{ $number->qr_code }}')">
-                                                    📱 Lihat QR
-                                                </button>
+                                                <button class="inline-flex items-center px-2 py-1 text-sm bg-indigo-100 text-indigo-800 rounded" onclick="openQRModal('{{ $number->qr_code }}')">📱 Lihat QR</button>
                                             @else
-                                                <form action="{{ route('whatsapp.generate-qr', $number) }}" method="POST" style="display: inline;">
+                                                <form action="{{ route('whatsapp.generate-qr', $number) }}" method="POST" class="inline">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-secondary">🔄 Jana QR</button>
+                                                    <button type="submit" class="inline-flex items-center px-2 py-1 text-sm bg-gray-100 text-gray-800 rounded">🔄 Jana QR</button>
                                                 </form>
                                             @endif
                                         </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
+                                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                            <div class="flex flex-wrap gap-2">
                                                 @if($number->status === 'active')
-                                                    <form action="{{ route('whatsapp.test', $number) }}" method="POST" style="display: inline;">
+                                                    <form action="{{ route('whatsapp.test', $number) }}" method="POST" class="inline">
                                                         @csrf
-                                                        <button type="submit" class="btn btn-sm btn-success">🧪 Test</button>
+                                                        <button type="submit" class="inline-flex items-center px-2 py-1 text-sm bg-green-600 text-white rounded">🧪 Test</button>
                                                     </form>
                                                 @endif
-                                                
-                                                <form action="{{ route('whatsapp.update-status', $number) }}" method="POST" style="display: inline;">
+                                                <form action="{{ route('whatsapp.update-status', $number) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('PATCH')
                                                     <input type="hidden" name="status" value="{{ $number->status === 'active' ? 'inactive' : 'active' }}">
-                                                    <button type="submit" class="btn btn-sm {{ $number->status === 'active' ? 'btn-warning' : 'btn-success' }}">
-                                                        {{ $number->status === 'active' ? '⏸️ Nyahaktif' : '▶️ Aktifkan' }}
-                                                    </button>
+                                                    <button type="submit" class="inline-flex items-center px-2 py-1 text-sm {{ $number->status === 'active' ? 'bg-yellow-500 text-white' : 'bg-green-600 text-white' }} rounded">{{ $number->status === 'active' ? '⏸️ Nyahaktif' : '▶️ Aktifkan' }}</button>
                                                 </form>
-                                                
-                                                <form action="{{ route('whatsapp.destroy', $number) }}" method="POST" style="display: inline;" onsubmit="return confirm('Padam nombor ini?')">
+                                                <form action="{{ route('whatsapp.destroy', $number) }}" method="POST" class="inline" onsubmit="return confirm('Padam nombor ini?')">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger">🗑️ Padam</button>
+                                                    <button type="submit" class="inline-flex items-center px-2 py-1 text-sm bg-red-600 text-white rounded">🗑️ Padam</button>
                                                 </form>
                                             </div>
                                         </td>
@@ -102,41 +91,111 @@
                             </table>
                         </div>
                     @else
-                        <div class="text-center py-4">
-                            <h5>📱 Tiada nombor WhatsApp didaftarkan</h5>
-                            <p class="text-muted">Klik butang "Tambah Nombor" untuk mula menggunakan notifikasi WhatsApp.</p>
+                        <div class="text-center py-8">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">📱 Tiada nombor WhatsApp didaftarkan</h3>
+                            <p class="text-sm text-gray-500 mt-2">Klik butang "Tambah Nombor" atau gunakan borang di sebelah untuk mula menggunakan notifikasi WhatsApp.</p>
+                            <div class="mt-4">
+                                <button id="emptyAddBtn" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md" type="button">➕ Tambah Nombor</button>
+                            </div>
                         </div>
                     @endif
                 </div>
             </div>
+        </div>
 
-            <!-- Auto-Reminder Info -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">⏰ Auto-Reminder System</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <h6>📋 Peringatan automatik dihantar untuk:</h6>
-                        <ul class="mb-0">
-                            <li>🔔 Aduan baru yang belum ditugaskan (selepas 3 hari)</li>
-                            <li>⚠️ Tugasan kontraktor yang tiada kemaskini (selepas 3 hari)</li>
-                        </ul>
+        <div class="lg:col-span-5 space-y-4">
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+                <h3 class="text-md font-medium text-gray-900 dark:text-gray-100">⏰ Auto-Reminder System</h3>
+                <p class="text-sm text-gray-500 mt-2">📋 Peringatan automatik dihantar untuk:</p>
+                <ul class="list-disc list-inside text-sm text-gray-600 mt-2">
+                    <li>🔔 Aduan baru yang belum ditugaskan (selepas 3 hari)</li>
+                    <li>⚠️ Tugasan kontraktor yang tiada kemaskini (selepas 3 hari)</li>
+                </ul>
+                <p class="text-sm font-medium text-gray-700 mt-3">📝 Cara menggunakan:</p>
+                <ol class="list-decimal list-inside text-sm text-gray-600 mt-2">
+                    <li>Tambah nombor WhatsApp sistem</li>
+                    <li>Scan QR code dengan WhatsApp Web</li>
+                    <li>Test sambungan untuk pastikan berfungsi</li>
+                    <li>Sistem akan auto-hantar notifikasi & reminder</li>
+                </ol>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+                <h3 class="text-md font-medium text-gray-900 dark:text-gray-100">➕ Tambah Nombor Pantas</h3>
+                <form action="{{ route('whatsapp.store') }}" method="POST" class="mt-3 space-y-3">
+                    @csrf
+                    <div>
+                        <label for="inline-number" class="block text-sm font-medium text-gray-700">Nombor Telefon</label>
+                        <input type="text" id="inline-number" name="number" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm" placeholder="60123456789">
+                        <p class="text-xs text-gray-500 mt-1">Masukkan nombor tanpa + (contoh: 60123456789)</p>
                     </div>
-                    <div class="mt-3">
-                        <strong>📝 Cara menggunakan:</strong>
-                        <ol>
-                            <li>Tambah nombor WhatsApp sistem</li>
-                            <li>Scan QR code dengan WhatsApp Web</li>
-                            <li>Test sambungan untuk pastikan berfungsi</li>
-                            <li>Sistem akan auto-hantar notifikasi & reminder</li>
-                        </ol>
+                    <div>
+                        <button type="submit" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md">Tambah</button>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Add Number Modal (Tailwind) -->
+<div id="addModal" class="fixed inset-0 hidden z-50 items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md mx-4">
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">➕ Tambah Nombor WhatsApp</h3>
+            <button id="closeAddModal" class="text-gray-500 hover:text-gray-700">✕</button>
+        </div>
+        <form action="{{ route('whatsapp.store') }}" method="POST">
+            @csrf
+            <div class="px-4 py-4">
+                <label for="modal-number" class="block text-sm font-medium text-gray-700">📱 Nombor Telefon</label>
+                <input type="text" name="number" id="modal-number" placeholder="60123456789" required class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                <p class="text-xs text-gray-500 mt-2">Masukkan nombor dalam format 60123456789 (tanpa +)</p>
+            </div>
+            <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
+                <button type="button" id="cancelAdd" class="px-3 py-2 rounded-md bg-gray-100 text-gray-700">Batal</button>
+                <button type="submit" class="px-3 py-2 rounded-md bg-blue-600 text-white">Tambah</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- QR Modal -->
+<div id="qrModal" class="fixed inset-0 hidden z-50 items-center justify-center bg-black bg-opacity-40">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm mx-4 text-center p-4">
+        <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100">📱 Scan QR Code</h4>
+        <div class="mt-4">
+            <img id="qrImage" src="" alt="QR Code" class="mx-auto max-w-xs" />
+        </div>
+        <div class="mt-4 text-sm text-gray-600">Buka WhatsApp → WhatsApp Web → Scan QR</div>
+        <div class="mt-4 flex justify-center">
+            <button id="closeQr" class="px-3 py-2 rounded-md bg-gray-100">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openQRModal(qr) {
+    document.getElementById('qrImage').src = qr;
+    document.getElementById('qrModal').classList.remove('hidden');
+}
+
+document.getElementById('openAddModalBtn')?.addEventListener('click', function(){
+    document.getElementById('addModal').classList.remove('hidden');
+});
+document.getElementById('emptyAddBtn')?.addEventListener('click', function(){
+    document.getElementById('addModal').classList.remove('hidden');
+});
+document.getElementById('cancelAdd')?.addEventListener('click', function(){
+    document.getElementById('addModal').classList.add('hidden');
+});
+document.getElementById('closeAddModal')?.addEventListener('click', function(){
+    document.getElementById('addModal').classList.add('hidden');
+});
+document.getElementById('closeQr')?.addEventListener('click', function(){
+    document.getElementById('qrModal').classList.add('hidden');
+});
+</script>
 
 <!-- Add Number Modal -->
 <div class="modal fade" id="addNumberModal" tabindex="-1">

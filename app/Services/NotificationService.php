@@ -129,7 +129,7 @@ class NotificationService
     private static function sendEmailAcknowledge(Complaint $complaint)
     {
         $status = $complaint->acknowledged_status === 'accepted' ? 'diterima' : 'ditolak';
-        $message = "Kontraktor telah {$status} tugasan untuk aduan ini.";
+    $message = "Kontraktor telah {$status} tugasan untuk aduan ini.";
         
         $pengurusanUsers = User::where('role', 'pengurusan')
             ->where('school_id', $complaint->school_id)
@@ -147,7 +147,7 @@ class NotificationService
             ->orWhere('id', $complaint->user_id)
             ->get();
 
-        $message = "Kemaskini progress untuk aduan ini: {$progressDescription}";
+    $message = "Kemaskini progress untuk aduan ini: {$progressDescription}";
 
         foreach ($users as $user) {
             Mail::to($user->email)->send(new ComplaintNotification($complaint, 'progress', $message));

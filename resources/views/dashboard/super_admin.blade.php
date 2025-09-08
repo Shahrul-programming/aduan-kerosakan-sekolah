@@ -90,6 +90,9 @@
                     <a href="{{ route('schools.index') }}" class="inline-flex items-center justify-center px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition duration-150">
                         <i class="fas fa-school mr-2"></i> Urus Sekolah
                     </a>
+                    <a href="{{ route('contractors.manage.create') }}" class="inline-flex items-center justify-center px-4 py-3 bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium rounded-lg transition duration-150">
+                        <i class="fas fa-tools mr-2"></i> Tambah Kontraktor
+                    </a>
                     <a href="#" class="inline-flex items-center justify-center px-4 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition duration-150">
                         <i class="fas fa-chart-bar mr-2"></i> Laporan
                     </a>

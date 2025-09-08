@@ -11,8 +11,8 @@ class Complaint extends Model
     use HasFactory;
 
     protected $fillable = [
-        'complaint_number', 'school_id', 'user_id', 'category', 'description', 'image', 'video', 'priority', 'status', 'assigned_to',
-        'acknowledged_status', 'acknowledged_at'
+    'complaint_number', 'title', 'school_id', 'user_id', 'reported_by', 'category', 'description', 'image', 'video', 'priority', 'status', 'assigned_to',
+    'acknowledged_status', 'acknowledged_at', 'reported_at'
     ];
 
     public function school()

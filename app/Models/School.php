@@ -19,4 +19,12 @@ class School extends Model
         'hem_phone',
         'qr_code',
     ];
+
+    /**
+     * Get the school admin user (one-to-one where role = school_admin).
+     */
+    public function admin()
+    {
+        return $this->hasOne(\App\Models\User::class)->where('role', 'school_admin');
+    }
 }

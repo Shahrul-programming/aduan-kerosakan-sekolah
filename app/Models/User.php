@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'school_id',
     ];
 
     /**
@@ -45,5 +46,22 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Relationship: user belongs to a school
+     */
+    public function school()
+    {
+        return $this->belongsTo(School::class);
+    }
+
+    /**
+     * If this user is a contractor account, this returns the Contractor record
+     * linked via contractors.user_id. Null when the user is not linked.
+     */
+    public function contractor()
+    {
+        return $this->hasOne(\App\Models\Contractor::class, 'user_id');
     }
 }

@@ -1,6 +1,14 @@
-    // Paparan QR code pendaftaran guru/user sekolah
-    Route::get('/schools/{school}/qr', [App\Http\Controllers\SchoolController::class, 'qrCode'])->name('schools.qr');
 <?php
+
+// Route untuk guru daftar akaun melalui kod sekolah
+Route::get('/daftar-guru/{code}', [App\Http\Controllers\TeacherController::class, 'showRegisterForm'])->name('teacher.register.form');
+Route::post('/daftar-guru/{code}', [App\Http\Controllers\TeacherController::class, 'register'])->name('teacher.register');
+
+// Paparan QR code pendaftaran guru/user sekolah
+Route::middleware(['auth', 'role:school_admin'])->group(function () {
+    // Paparan QR code automatik untuk admin sekolah login
+    Route::get('/school/qr', [App\Http\Controllers\SchoolController::class, 'qrCode'])->name('schools.qr');
+});
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -16,6 +24,9 @@ Route::get('/ping-complaints-debug', function () {
     \Log::info('ping-complaints-debug hit', ['ip' => request()->ip(), 'uri' => request()->getRequestUri()]);
     return response()->json(['ok' => true, 'time' => now()->toDateTimeString()]);
 });
+
+// (Removed) Temporary debug route that created complaints directly. Deleted to avoid
+// accidental writes and misleading errors in production-like environments.
 
 // Test complaints routes without middleware to isolate the issue
 Route::get('/complaints-test-no-middleware', function () {
@@ -52,6 +63,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Centralized complaints resource for all authenticated users. Specific
+    // admin-only pages (e.g. review/prioritize) remain under role-restricted groups.
+    // complaints resource moved to top-level auth group
+    Route::post('complaints/{complaint}/assign', [App\Http\Controllers\ComplaintController::class, 'assign'])->name('complaints.assign');
+    // (compatibility route removed)
+    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
 });
 
 // Route untuk Super Admin
@@ -60,11 +78,13 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
         return 'Dashboard Super Admin';
     });
     Route::resource('schools', App\Http\Controllers\SchoolController::class);
-    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
+    // Ajax endpoint to get login info for a specific school (used by modal)
+    Route::get('/schools/{school}/login-info', [App\Http\Controllers\SchoolController::class, 'loginInfo'])->name('schools.login-info');
+    // complaints resource moved to top-level auth group; keep admin pages above
     
-    // User management (super admin)
-    Route::get('/users/create', [App\Http\Controllers\UserController::class, 'create'])->name('users.create');
-    Route::post('/users', [App\Http\Controllers\UserController::class, 'store'])->name('users.store');
+    // User management (super admin) - user list and other super-admin-only routes live here.
+    // The create/store routes are intentionally placed into a shared middleware group below
+    // so that both super_admin and school_admin can create users (school_admin only for kontraktor).
 
     // WhatsApp Management routes
     Route::get('/whatsapp', [\App\Http\Controllers\WhatsappController::class, 'index'])->name('whatsapp.index');
@@ -97,12 +117,28 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::get('/dashboard-analitik-graf', [ReportController::class, 'dashboardChart'])->name('reports.dashboard.chart');
 });
 
+// Super admin: manage contractors across schools
+Route::middleware(['auth', 'role:super_admin'])->prefix('super-admin')->group(function () {
+    Route::get('contractors', [\App\Http\Controllers\ContractorController::class, 'manageIndex'])->name('contractors.manage.index');
+    Route::get('contractors/create', [\App\Http\Controllers\ContractorController::class, 'manageCreate'])->name('contractors.manage.create');
+    Route::post('contractors', [\App\Http\Controllers\ContractorController::class, 'manageStore'])->name('contractors.manage.store');
+    Route::get('contractors/{contractor}/edit', [\App\Http\Controllers\ContractorController::class, 'manageEdit'])->name('contractors.manage.edit');
+    Route::put('contractors/{contractor}', [\App\Http\Controllers\ContractorController::class, 'manageUpdate'])->name('contractors.manage.update');
+    Route::delete('contractors/{contractor}', [\App\Http\Controllers\ContractorController::class, 'manageDestroy'])->name('contractors.manage.destroy');
+});
+
+// Allow both super_admin and school_admin to create users (school_admin only allowed to create kontraktor)
+Route::middleware(['auth', 'role:super_admin,school_admin'])->group(function () {
+    Route::get('/users/create', [App\Http\Controllers\UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [App\Http\Controllers\UserController::class, 'store'])->name('users.store');
+});
+
 // Route untuk Pengurusan
 Route::middleware(['auth', 'role:pengurusan'])->group(function () {
     Route::get('/pengurusan', function () {
         return 'Dashboard Pengurusan';
     });
-    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
+    // Complaint resource is registered under the general auth group above.
     // Laporan & Dashboard Analitik (akses pengurusan)
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/export/excel', [ReportController::class, 'exportExcel'])->name('reports.export.excel');
@@ -126,6 +162,10 @@ Route::middleware(['auth', 'role:school_admin'])->group(function () {
                 'timestamp' => now()->toDateTimeString()
             ]);
         })->name('test.school.admin');
+
+        // School admin: manage contractors (create)
+        Route::get('contractors/create', [App\Http\Controllers\ContractorController::class, 'create'])->name('contractors.create');
+        Route::post('contractors', [App\Http\Controllers\ContractorController::class, 'store'])->name('contractors.store');
 
     // ...existing code...
     
@@ -154,12 +194,10 @@ Route::middleware(['auth', 'role:school_admin'])->group(function () {
     Route::get('complaints/prioritize', function() {
         return view('complaints.prioritize');
     })->name('complaints.prioritize');
-    Route::get('complaints/assign', function() {
-        return view('complaints.assign');
-    })->name('complaints.assign');
+    // (removed static assign view route to avoid name/URI conflicts)
 
-    // Resource route AFTER literal routes to prevent conflicts
-    Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
+    // complaints resource moved to top-level auth group; admin literal routes
+    // remain defined here above.
     
     // API routes for dashboard actions
     Route::patch('complaints/{complaint}/status', [App\Http\Controllers\ComplaintController::class, 'updateStatus'])->name('complaints.update.status');

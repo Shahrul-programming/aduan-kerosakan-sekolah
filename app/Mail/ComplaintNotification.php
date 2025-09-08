@@ -16,7 +16,7 @@ class ComplaintNotification extends Mailable
     public function __construct(
         public Complaint $complaint,
         public string $type,
-        public string $message
+        public string $body
     ) {}
 
     public function envelope(): Envelope

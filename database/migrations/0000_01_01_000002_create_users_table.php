@@ -11,7 +11,8 @@ class CreateUsersTable extends Migration {
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['super_admin', 'pengurusan', 'guru', 'kontraktor']);
+            // Use string for role to keep compatibility across DB drivers and allow flexible roles
+            $table->string('role')->default('guru');
             $table->foreignId('school_id')->nullable()->constrained('schools')->onDelete('set null');
             $table->string('phone')->nullable();
             $table->rememberToken();

@@ -18,8 +18,10 @@ class ComplaintFactory extends Factory
     {
         return [
             'complaint_number' => $this->faker->unique()->numerify('ADUAN-#####'),
+            'title' => $this->faker->sentence(),
             'school_id' => \App\Models\School::factory(),
             'user_id' => \App\Models\User::factory(),
+            'reported_by' => \App\Models\User::factory(),
             'category' => $this->faker->randomElement(['Elektrik', 'Bangunan', 'Air', 'Lain-lain']),
             'description' => $this->faker->paragraph(2),
             'image' => null,
@@ -27,6 +29,7 @@ class ComplaintFactory extends Factory
             'priority' => $this->faker->randomElement(['tinggi', 'sederhana', 'rendah']),
             'status' => $this->faker->randomElement(['baru', 'semakan', 'assigned', 'proses', 'selesai']),
             'assigned_to' => null,
+            'reported_at' => now(),
         ];
     }
 }

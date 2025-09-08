@@ -13,10 +13,10 @@ class CreateSchoolsTable extends Migration {
             $table->string('phone')->nullable(); // Tambah phone supaya padan dengan factory/model
             $table->string('email')->nullable();
             $table->string('ppd')->nullable();
-            $table->string('principal_name');
-            $table->string('principal_phone');
-            $table->string('hem_name');
-            $table->string('hem_phone');
+            $table->string('principal_name')->nullable();
+            $table->string('principal_phone')->nullable();
+            $table->string('hem_name')->nullable();
+            $table->string('hem_phone')->nullable();
             $table->string('qr_code')->nullable();
             $table->timestamps();
         });

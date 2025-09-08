@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Mail;
 
 class ComplaintController extends Controller
 {
+    public function __construct()
+    {
+        // Allow only teachers to access complaint creation routes.
+        // Note: roles 'guru' and 'teacher' are treated as synonyms in this app.
+        $this->middleware('role:guru,teacher')->only(['create', 'store']);
+    }
     /**
      * Display a listing of the resource.
      */
@@ -20,6 +26,11 @@ class ComplaintController extends Controller
         // Technician: only see complaints assigned to them
         if (auth()->user()->role === 'technician') {
             $query->where('assigned_to', auth()->id());
+        }
+
+        // Teacher: only see complaints reported by them
+        if (in_array(auth()->user()->role, ['guru','teacher'])) {
+            $query->where('reported_by', auth()->id());
         }
 
         if ($request->filled('status')) {
@@ -59,6 +70,21 @@ class ComplaintController extends Controller
             'video' => 'nullable|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime|max:10240',
         ]);
         
+        // If the authenticated user is a teacher, enforce their school_id server-side
+        $userRole = null;
+        if (auth()->check()) {
+            $userRole = strtolower(trim(auth()->user()->role ?? ''));
+        }
+        \Log::debug('Complaint store - user role check', ['role' => $userRole]);
+
+        if (in_array($userRole, ['guru', 'teacher'])) {
+            $userSchoolId = auth()->user()->school_id;
+            if (empty($userSchoolId)) {
+                return back()->withErrors(['school_id' => 'Akaun guru tidak dikaitkan dengan mana-mana sekolah.'])->withInput();
+            }
+            $validated['school_id'] = $userSchoolId;
+        }
+        
         // Auto-generate complaint number
         $validated['complaint_number'] = $this->generateComplaintNumber();
         $validated['user_id'] = auth()->id();
@@ -73,10 +99,22 @@ class ComplaintController extends Controller
             $validated['video'] = $request->file('video')->store('complaint_videos', 'public');
         }
 
-        $complaint = \App\Models\Complaint::create($validated);
+        try {
+            $complaint = \App\Models\Complaint::create($validated);
+        } catch (\Exception $e) {
+            \Log::error('Failed to create complaint', ['error' => $e->getMessage(), 'payload' => $validated]);
+            // Return a friendly error to the user while preserving input
+            return back()->withInput()->withErrors(['general' => 'Gagal menghantar aduan. Sila semak data dan cuba lagi atau hubungi pentadbir.']);
+        }
 
         // Send notification email
         NotificationService::sendNewComplaintNotification($complaint);
+
+        // Redirect based on role: teachers return to their dashboard to avoid
+        // hitting role-restricted complaints.index (which may cause 403).
+        if (in_array($userRole, ['guru', 'teacher'])) {
+            return redirect()->route('dashboard')->with('success', 'Aduan berjaya dihantar.');
+        }
 
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dihantar.');
     }
@@ -125,9 +163,76 @@ class ComplaintController extends Controller
     {
         $complaint = \App\Models\Complaint::findOrFail($id);
         $schools = \App\Models\School::all();
-        $contractors = Contractor::all();
-        return view('complaints.edit', compact('complaint', 'schools', 'contractors'));
+        // Only show contractors associated with this complaint's school.
+        // A contractor may be assigned via direct school_id or via the contractor_school pivot table.
+        $contractors = Contractor::where(function($q) use ($complaint) {
+            $q->where('school_id', $complaint->school_id)
+              ->orWhereHas('schools', function($q2) use ($complaint) {
+                  $q2->where('schools.id', $complaint->school_id);
+              });
+        })->orderBy('name')->get()->unique('name')->values();
+
+        // Localized labels for Blade (status and priority)
+        // Keys must match the enum values defined in the DB migration
+        $statuses = [
+            'baru' => 'Baru',
+            'semakan' => 'Semakan',
+            'assigned' => 'Diberi Tugasan',
+            'proses' => 'Sedang Diproses',
+            'selesai' => 'Selesai',
+            'pending' => 'Pending',
+            'in_progress' => 'Dalam Progress',
+            'completed' => 'Selesai (completed)'
+        ];
+
+        $priorities = [
+            'rendah' => 'Rendah',
+            'sederhana' => 'Sederhana',
+            'tinggi' => 'Tinggi',
+        ];
+
+    return view('complaints.edit', compact('complaint', 'contractors', 'statuses', 'priorities', 'schools'));
     }
+
+    /**
+     * Assign a contractor to a complaint (school admin only)
+     */
+    public function assign(Request $request, \App\Models\Complaint $complaint)
+    {
+        // Logging to help debug legacy/client issues
+        \Log::info('assign() called', [
+            'uri' => $request->getRequestUri(),
+            'full_url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'input' => $request->all(),
+            'complaint_id' => $complaint->id,
+        ]);
+        // Only school_admin for the complaint's school may assign
+        if (auth()->user()->role !== 'school_admin' || auth()->user()->school_id !== $complaint->school_id) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'contractor_id' => 'required|exists:contractors,id',
+        ]);
+
+        // Ensure contractor belongs to the same school
+        $contractor = \App\Models\Contractor::find($data['contractor_id']);
+        if (!$contractor || $contractor->school_id !== $complaint->school_id) {
+            return back()->withErrors(['contractor_id' => 'Kontraktor tidak berdaftar dengan sekolah ini.']);
+        }
+
+        $complaint->assigned_to = $contractor->id;
+        $complaint->status = 'assigned';
+        $complaint->save();
+
+        \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'assign kontraktor', $complaint->id);
+        NotificationService::sendAssignmentNotification($complaint->fresh());
+
+        return back()->with('success', 'Kontraktor berjaya ditugaskan.');
+    }
+
+    // (legacy compatibility handler removed)
 
     /**
      * Update the specified resource in storage.
@@ -140,8 +245,10 @@ class ComplaintController extends Controller
             'school_id' => 'required|exists:schools,id',
             'category' => 'required',
             'description' => 'required',
-            'priority' => 'required',
-            'status' => 'required',
+            // enforce allowed priority values
+            'priority' => 'required|in:urgent,tinggi,sederhana,rendah',
+            // enforce allowed status values matching DB enum
+            'status' => 'required|in:baru,semakan,assigned,proses,selesai,pending,in_progress,completed',
             'assigned_to' => 'nullable|exists:contractors,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'video' => 'nullable|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime|max:10240',
@@ -184,7 +291,15 @@ class ComplaintController extends Controller
     public function acknowledge(Request $request, $id)
     {
         $complaint = \App\Models\Complaint::findOrFail($id);
-        if (auth()->user()->role !== 'kontraktor' || $complaint->assigned_to != auth()->id()) {
+        $user = auth()->user();
+        // Determine whether the complaint is assigned to this contractor account
+        $isAssignedToThisUser = false;
+        if (method_exists($user, 'contractor') && $user->contractor) {
+            $isAssignedToThisUser = ($complaint->assigned_to == $user->contractor->id);
+        } else {
+            $isAssignedToThisUser = ($complaint->assigned_to == $user->id);
+        }
+        if ($user->role !== 'kontraktor' || !$isAssignedToThisUser) {
             abort(403);
         }
         $status = $request->input('acknowledge');
