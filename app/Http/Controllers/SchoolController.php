@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -26,13 +27,14 @@ class SchoolController extends Controller
                 // We detect default account by checking whether the email
                 // matches the convention code@sekolah.admin and if so assume
                 // the default password 'password' was used when created via UI.
-                $expectedDefaultEmail = $school->code . '@sekolah.admin';
+                $expectedDefaultEmail = $school->code.'@sekolah.admin';
                 $school->login_password_hint = ($admin->email === $expectedDefaultEmail) ? 'password' : '(sudah ditetapkan oleh admin)';
             } else {
                 // Fallback defaults if no admin exists
-                $school->login_email = $school->code . '@sekolah.admin';
+                $school->login_email = $school->code.'@sekolah.admin';
                 $school->login_password_hint = 'password';
             }
+
             return $school;
         });
 
@@ -58,9 +60,9 @@ class SchoolController extends Controller
             // For simple create flow, only Nama & Kod diperlukan seperti kehendak baru.
             // Medan lain boleh dikemaskini kemudian di halaman edit sekolah.
         ]);
-        
+
         // Cipta sekolah – hanya nama & kod diperlukan
-        $school = new \App\Models\School();
+        $school = new \App\Models\School;
         $school->name = $request->input('name');
         $school->code = $request->input('code');
         $school->address = $request->input('address', '');
@@ -79,6 +81,7 @@ class SchoolController extends Controller
     public function show($id)
     {
         $school = \App\Models\School::findOrFail($id);
+
         return view('schools.show', compact('school'));
     }
 
@@ -88,6 +91,7 @@ class SchoolController extends Controller
     public function edit($id)
     {
         $school = \App\Models\School::findOrFail($id);
+
         return view('schools.edit', compact('school'));
     }
 
@@ -99,7 +103,7 @@ class SchoolController extends Controller
         $school = \App\Models\School::findOrFail($id);
         $request->validate([
             'name' => 'required',
-            'code' => 'required|unique:schools,code,' . $school->id,
+            'code' => 'required|unique:schools,code,'.$school->id,
             'address' => 'required',
             'principal_name' => 'required',
             'principal_phone' => 'required',
@@ -107,6 +111,7 @@ class SchoolController extends Controller
             'hem_phone' => 'required',
         ]);
         $school->update($request->all());
+
         return redirect()->route('schools.index')->with('success', 'Sekolah berjaya dikemaskini');
     }
 
@@ -117,6 +122,7 @@ class SchoolController extends Controller
     {
         $school = \App\Models\School::findOrFail($id);
         $school->delete();
+
         return redirect()->route('schools.index')->with('success', 'Sekolah berjaya dipadam');
     }
 
@@ -126,14 +132,15 @@ class SchoolController extends Controller
     public function qrCode()
     {
         $user = auth()->user();
-        
+
         // Pastikan user ada school_id yang sah
-        if (!$user->school_id) {
+        if (! $user->school_id) {
             abort(404, 'User tidak dikaitkan dengan sekolah manapun.');
         }
-        
+
         // Cari sekolah berdasarkan ID
         $schoolObj = \App\Models\School::findOrFail($user->school_id);
+
         return view('schools.qr', compact('schoolObj'));
     }
 
@@ -149,10 +156,10 @@ class SchoolController extends Controller
 
         if ($admin) {
             $email = $admin->email;
-            $expectedDefaultEmail = $school->code . '@sekolah.admin';
+            $expectedDefaultEmail = $school->code.'@sekolah.admin';
             $password_hint = ($admin->email === $expectedDefaultEmail) ? 'password' : '(sudah ditetapkan oleh admin)';
         } else {
-            $email = $school->code . '@sekolah.admin';
+            $email = $school->code.'@sekolah.admin';
             $password_hint = 'password';
         }
 
@@ -169,7 +176,7 @@ class SchoolController extends Controller
     public function assignAdmin(Request $request, $id)
     {
         // Pastikan hanya super_admin dibenarkan (middleware di route juga melindungi)
-        if (!auth()->check() || auth()->user()->role !== 'super_admin') {
+        if (! auth()->check() || auth()->user()->role !== 'super_admin') {
             abort(403);
         }
 
@@ -186,14 +193,14 @@ class SchoolController extends Controller
         \DB::beginTransaction();
         try {
             // Nyah-lantik admin lama (jika ada) – polisi: satu admin per sekolah
-            $prev = \App\Models\User::where('role','school_admin')->where('school_id', $school->id)->first();
+            $prev = \App\Models\User::where('role', 'school_admin')->where('school_id', $school->id)->first();
             if ($prev) {
                 $prev->role = 'guru'; // atau null mengikut polisi
                 $prev->save();
             }
 
             // Cipta user baharu sebagai admin sekolah
-            $user = new \App\Models\User();
+            $user = new \App\Models\User;
             $user->name = $validated['name'];
             $user->position = $validated['position'] ?? null;
             $user->email = $validated['email'];
@@ -206,7 +213,7 @@ class SchoolController extends Controller
             // Log aktiviti (tanpa kaitan aduan). Jangan isi complaint_id dengan school_id.
             \App\Http\Controllers\ActivityLogController::log(
                 auth()->id(),
-                'lantik admin sekolah: ' . $user->email . ' (school: ' . $school->code . ')',
+                'lantik admin sekolah: '.$user->email.' (school: '.$school->code.')',
                 null
             );
             try {
@@ -216,10 +223,12 @@ class SchoolController extends Controller
             }
 
             \DB::commit();
+
             return back()->with('success', 'User berjaya dilantik sebagai Admin Sekolah.');
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Gagal lantik admin sekolah', ['error' => $e->getMessage(), 'school_id' => $school->id]);
+
             return back()->withErrors(['general' => 'Gagal melantik admin sekolah.']);
         }
     }

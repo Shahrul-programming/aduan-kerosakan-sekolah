@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\ProgressUpdate;
 use App\Models\Complaint;
 use App\Models\Contractor;
+use App\Models\ProgressUpdate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ProgressUpdateFactory extends Factory

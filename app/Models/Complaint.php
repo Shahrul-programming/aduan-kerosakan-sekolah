@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Complaint extends Model
 {
@@ -11,38 +13,66 @@ class Complaint extends Model
     use HasFactory;
 
     protected $fillable = [
-    'complaint_number', 'title', 'school_id', 'user_id', 'reported_by', 'category', 'description', 'image', 'video', 'priority', 'status', 'assigned_to',
-    'acknowledged_status', 'acknowledged_at', 'reported_at', 'reporter_phone', 'assigned_by', 'assigned_at'
+        'complaint_number', 'title', 'school_id', 'user_id', 'reported_by', 'category', 'description', 'image', 'video', 'priority', 'status', 'assigned_to',
+        'acknowledged_status', 'acknowledged_at', 'reported_at', 'reporter_phone', 'assigned_by', 'assigned_at',
     ];
 
-    public function school()
+    /**
+     * Get the school that reported this complaint.
+     *
+     * @return BelongsTo<School, $this>
+     */
+    public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
     }
 
-    public function user()
+    /**
+     * Get the user who created this complaint.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-
-    // Relationship: assigned_to can be contractor OR technician (User)
-    public function assignedUser()
+    /**
+     * Relationship: assigned_to can be contractor OR technician (User).
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    public function contractor()
+    /**
+     * Get the contractor assigned to this complaint.
+     *
+     * @return BelongsTo<Contractor, $this>
+     */
+    public function contractor(): BelongsTo
     {
         return $this->belongsTo(Contractor::class, 'assigned_to');
     }
 
-    public function assigner()
+    /**
+     * Get the user who assigned this complaint.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function assigner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by');
     }
 
-    public function progressUpdates()
+    /**
+     * Get all progress updates for this complaint.
+     *
+     * @return HasMany<ProgressUpdate, $this>
+     */
+    public function progressUpdates(): HasMany
     {
         return $this->hasMany(ProgressUpdate::class);
     }

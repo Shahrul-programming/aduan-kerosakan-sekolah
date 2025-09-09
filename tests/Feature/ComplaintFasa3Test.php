@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Models\Complaint;
 use App\Models\Contractor;
 use App\Models\User;
-use App\Models\ProgressUpdate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,7 +43,7 @@ class ComplaintFasa3Test extends TestCase
         $contractor = Contractor::factory()->create(['id' => $kontraktor->id]);
         $aduan = Complaint::factory()->create([
             'assigned_to' => $contractor->id,
-            'acknowledged_status' => 'accepted' // Aduan sudah di-acknowledge
+            'acknowledged_status' => 'accepted', // Aduan sudah di-acknowledge
         ]);
 
         $response = $this->actingAs($kontraktor)->post(route('complaints.progress.store', $aduan), [
@@ -85,16 +84,17 @@ class ComplaintFasa3Test extends TestCase
             'acknowledge' => 'accepted',
         ]);
 
-        // Kontraktor update progress  
+        // Kontraktor update progress
         $this->actingAs($kontraktor)->post(route('complaints.progress.store', $aduan->fresh()), [
             'description' => 'Kerja dalam proses',
         ]);
-        
+
         $this->assertDatabaseHas('activity_logs', [
             'action' => 'kemaskini progress',
             'complaint_id' => $aduan->id,
         ]);
     }
+
     public function test_kontraktor_mesti_acknowledge_sebelum_update_progress()
     {
         $kontraktor = User::factory()->create(['role' => 'kontraktor']);

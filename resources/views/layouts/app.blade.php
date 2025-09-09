@@ -39,5 +39,18 @@
         {{-- allow pages to push scripts (lightbox, inline page scripts) --}}
         @stack('scripts')
         </div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2">
+            <!-- Toasts will be dynamically added here -->
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden items-center justify-center">
+            <div class="bg-white rounded-lg p-6 flex items-center space-x-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <span class="text-gray-700">Memproses...</span>
+            </div>
+        </div>
     </body>
 </html>

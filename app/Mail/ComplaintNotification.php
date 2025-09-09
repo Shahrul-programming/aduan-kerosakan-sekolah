@@ -35,7 +35,7 @@ class ComplaintNotification extends Mailable
 
     private function getSubject(): string
     {
-        return match($this->type) {
+        return match ($this->type) {
             'new' => "[Aduan Baru] {$this->complaint->complaint_number}",
             'assignment' => "[Tugasan Baru] {$this->complaint->complaint_number}",
             'acknowledge' => "[Tugasan Diterima] {$this->complaint->complaint_number}",

@@ -2,11 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\User;
-use App\Models\Complaint;
 use App\Mail\ComplaintNotification;
-use Illuminate\Support\Facades\Mail;
+use App\Models\Complaint;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -18,13 +18,13 @@ class NotificationService
         try {
             // Send email notification
             self::sendEmailNewComplaint($complaint);
-            
+
             // Send WhatsApp notification
             WhatsappService::sendNewComplaintNotification($complaint);
-            
+
             Log::info("New complaint notifications sent for complaint: {$complaint->complaint_number}");
         } catch (\Exception $e) {
-            Log::error("Failed to send new complaint notifications: " . $e->getMessage());
+            Log::error('Failed to send new complaint notifications: '.$e->getMessage());
         }
     }
 
@@ -34,19 +34,19 @@ class NotificationService
     public static function sendAssignmentNotification(Complaint $complaint)
     {
         try {
-            if (!$complaint->contractor) {
+            if (! $complaint->contractor) {
                 return;
             }
 
             // Send email notification
             self::sendEmailAssignment($complaint);
-            
+
             // Send WhatsApp notification
             WhatsappService::sendAssignmentNotification($complaint);
 
             Log::info("Assignment notifications sent for complaint: {$complaint->complaint_number}");
         } catch (\Exception $e) {
-            Log::error("Failed to send assignment notifications: " . $e->getMessage());
+            Log::error('Failed to send assignment notifications: '.$e->getMessage());
         }
     }
 
@@ -58,13 +58,13 @@ class NotificationService
         try {
             // Send email notification
             self::sendEmailAcknowledge($complaint);
-            
+
             // Send WhatsApp notification
             WhatsappService::sendAcknowledgeNotification($complaint);
 
             Log::info("Acknowledge notifications sent for complaint: {$complaint->complaint_number}");
         } catch (\Exception $e) {
-            Log::error("Failed to send acknowledge notifications: " . $e->getMessage());
+            Log::error('Failed to send acknowledge notifications: '.$e->getMessage());
         }
     }
 
@@ -76,13 +76,13 @@ class NotificationService
         try {
             // Send email notification
             self::sendEmailProgressUpdate($complaint, $progressDescription);
-            
+
             // Send WhatsApp notification
             WhatsappService::sendProgressUpdateNotification($complaint, $progressDescription);
 
             Log::info("Progress update notifications sent for complaint: {$complaint->complaint_number}");
         } catch (\Exception $e) {
-            Log::error("Failed to send progress update notifications: " . $e->getMessage());
+            Log::error('Failed to send progress update notifications: '.$e->getMessage());
         }
     }
 
@@ -94,13 +94,13 @@ class NotificationService
         try {
             // Send email notification
             self::sendEmailCompletion($complaint);
-            
+
             // Send WhatsApp notification
             WhatsappService::sendCompletionNotification($complaint);
 
             Log::info("Completion notifications sent for complaint: {$complaint->complaint_number}");
         } catch (\Exception $e) {
-            Log::error("Failed to send completion notifications: " . $e->getMessage());
+            Log::error('Failed to send completion notifications: '.$e->getMessage());
         }
     }
 
@@ -129,8 +129,8 @@ class NotificationService
     private static function sendEmailAcknowledge(Complaint $complaint)
     {
         $status = $complaint->acknowledged_status === 'accepted' ? 'diterima' : 'ditolak';
-    $message = "Kontraktor telah {$status} tugasan untuk aduan ini.";
-        
+        $message = "Kontraktor telah {$status} tugasan untuk aduan ini.";
+
         $pengurusanUsers = User::where('role', 'pengurusan')
             ->where('school_id', $complaint->school_id)
             ->get();
@@ -147,7 +147,7 @@ class NotificationService
             ->orWhere('id', $complaint->user_id)
             ->get();
 
-    $message = "Kemaskini progress untuk aduan ini: {$progressDescription}";
+        $message = "Kemaskini progress untuk aduan ini: {$progressDescription}";
 
         foreach ($users as $user) {
             Mail::to($user->email)->send(new ComplaintNotification($complaint, 'progress', $message));
@@ -161,7 +161,7 @@ class NotificationService
             ->orWhere('id', $complaint->user_id)
             ->get();
 
-        $message = "Aduan ini telah selesai diselesaikan.";
+        $message = 'Aduan ini telah selesai diselesaikan.';
 
         foreach ($users as $user) {
             Mail::to($user->email)->send(new ComplaintNotification($complaint, 'completion', $message));

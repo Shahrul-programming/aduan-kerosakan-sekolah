@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -19,7 +21,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-    'position',
+        'position',
         'email',
         'password',
         'role',
@@ -50,9 +52,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Relationship: user belongs to a school
+     * Relationship: user belongs to a school.
+     *
+     * @return BelongsTo<School, $this>
      */
-    public function school()
+    public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
     }
@@ -60,9 +64,11 @@ class User extends Authenticatable
     /**
      * If this user is a contractor account, this returns the Contractor record
      * linked via contractors.user_id. Null when the user is not linked.
+     *
+     * @return HasOne<Contractor, $this>
      */
-    public function contractor()
+    public function contractor(): HasOne
     {
-        return $this->hasOne(\App\Models\Contractor::class, 'user_id');
+        return $this->hasOne(Contractor::class, 'user_id');
     }
 }

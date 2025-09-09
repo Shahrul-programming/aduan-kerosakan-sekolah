@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Contractor;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -26,12 +26,14 @@ class ContractorController extends Controller
     public function manageIndex()
     {
         $contractors = Contractor::with('schools')->paginate(20);
+
         return view('contractors.manage.index', compact('contractors'));
     }
 
     public function manageCreate()
     {
         $schools = \App\Models\School::all();
+
         return view('contractors.manage.create', compact('schools'));
     }
 
@@ -47,10 +49,9 @@ class ContractorController extends Controller
             'schools.*' => 'exists:schools,id',
         ]);
 
-    $data = $request->only(['name','company_name','phone','email','address']);
-    $data['phone'] = $data['phone'] ?? '';
-    $contractor = Contractor::create($data);
-        
+        $data = $request->only(['name', 'company_name', 'phone', 'email', 'address']);
+        $data['phone'] = $data['phone'] ?? '';
+        $contractor = Contractor::create($data);
 
         if ($request->filled('schools')) {
             $contractor->schools()->sync($request->schools);
@@ -62,7 +63,7 @@ class ContractorController extends Controller
             $u->name = $u->name ?: $contractor->name;
             $u->role = 'kontraktor';
             $u->school_id = $request->schools ? $request->schools[0] : null;
-            if (!$u->exists) {
+            if (! $u->exists) {
                 $u->password = Hash::make(Str::random(24));
                 $u->save();
             }
@@ -78,7 +79,8 @@ class ContractorController extends Controller
     {
         $schools = \App\Models\School::all();
         $selected = $contractor->schools()->pluck('schools.id')->toArray();
-        return view('contractors.manage.edit', compact('contractor','schools','selected'));
+
+        return view('contractors.manage.edit', compact('contractor', 'schools', 'selected'));
     }
 
     public function manageUpdate(Request $request, Contractor $contractor)
@@ -93,7 +95,7 @@ class ContractorController extends Controller
             'schools.*' => 'exists:schools,id',
         ]);
 
-        $contractor->update($request->only(['name','company_name','phone','email','address']));
+        $contractor->update($request->only(['name', 'company_name', 'phone', 'email', 'address']));
         $contractor->schools()->sync($request->schools ?? []);
 
         return redirect()->route('contractors.manage.index')->with('success', 'Kontraktor dikemaskini.');
@@ -103,6 +105,7 @@ class ContractorController extends Controller
     {
         $contractor->schools()->detach();
         $contractor->delete();
+
         return redirect()->route('contractors.manage.index')->with('success', 'Kontraktor dipadam.');
     }
 
@@ -124,23 +127,23 @@ class ContractorController extends Controller
             return back()->withErrors(['school' => 'Akaun admin sekolah tidak dikaitkan dengan mana-mana sekolah.']);
         }
 
-    $data = $request->only(['name','company_name','phone','email','address']);
-    $data['phone'] = $data['phone'] ?? '';
-    $data['school_id'] = $schoolId;
+        $data = $request->only(['name', 'company_name', 'phone', 'email', 'address']);
+        $data['phone'] = $data['phone'] ?? '';
+        $data['school_id'] = $schoolId;
 
-    $contractor = Contractor::create($data);
+        $contractor = Contractor::create($data);
 
         // Log activity if ActivityLogController exists
         if (class_exists('\App\Http\Controllers\ActivityLogController')) {
             // Don't store contractor id in complaint_id foreign key -- pass null
-            \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'create kontraktor: ' . $contractor->id, null);
+            \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'create kontraktor: '.$contractor->id, null);
         }
 
         $messages = ['success' => 'Kontraktor berjaya didaftar.'];
 
         // If an email was provided, create (or update) a User and send password reset link so
         // the contractor can set their password securely (option B requested).
-        if (!empty($contractor->email)) {
+        if (! empty($contractor->email)) {
             $email = $contractor->email;
 
             $user = User::firstOrNew(['email' => $email]);
@@ -149,7 +152,7 @@ class ContractorController extends Controller
             $user->school_id = $schoolId;
 
             // If user is newly created (no id yet), set a random temporary password (will be reset by user).
-            if (!$user->exists) {
+            if (! $user->exists) {
                 $user->password = Hash::make(Str::random(24));
             }
 

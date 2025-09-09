@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\School;
+use Illuminate\Database\Seeder;
 
 class SchoolSeeder extends Seeder
 {
@@ -78,7 +77,7 @@ class SchoolSeeder extends Seeder
                 'hem_name' => 'Pn. Zainab',
                 'hem_phone' => '013-6667777',
                 'qr_code' => null,
-            ]
+            ],
         ];
 
         foreach ($schools as $school) {

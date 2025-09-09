@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\School;
 use App\Models\Complaint;
-use App\Models\Contractor;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -15,7 +13,7 @@ class ReportFasa5Test extends TestCase
 {
     use RefreshDatabase;
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
         $this->seed();
@@ -27,7 +25,6 @@ class ReportFasa5Test extends TestCase
         $response = $this->actingAs($admin)->get(route('reports.by-category'));
         $response->assertStatus(200)->assertSee('Laporan Aduan Mengikut Kategori');
     }
-
 
     public function test_can_view_report_by_school()
     {

@@ -8,96 +8,203 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-blue-500 text-white">
-                        <div class="flex items-center">
-                            <div class="text-2xl font-bold">{{ $totalComplaints }}</div>
-                            <div class="ml-auto">
-                                <i class="fas fa-exclamation-circle text-3xl"></i>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow">
+                    <div class="p-6 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-3xl font-bold">{{ $totalComplaints }}</div>
+                                <div class="text-sm opacity-90">Total Complaints</div>
+                            </div>
+                            <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                                <i class="fas fa-exclamation-circle text-2xl"></i>
                             </div>
                         </div>
-                        <div class="text-sm">Total Complaints</div>
+                        <div class="mt-4 flex items-center text-xs">
+                            <i class="fas fa-arrow-up text-green-200 mr-1"></i>
+                            <span class="opacity-90">+12% from last month</span>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-yellow-500 text-white">
-                        <div class="flex items-center">
-                            <div class="text-2xl font-bold">{{ $pendingComplaints }}</div>
-                            <div class="ml-auto">
-                                <i class="fas fa-clock text-3xl"></i>
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow">
+                    <div class="p-6 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-3xl font-bold">{{ $pendingComplaints }}</div>
+                                <div class="text-sm opacity-90">Pending Review</div>
+                            </div>
+                            <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                                <i class="fas fa-clock text-2xl"></i>
                             </div>
                         </div>
-                        <div class="text-sm">Pending Review</div>
+                        <div class="mt-4 flex items-center text-xs">
+                            <i class="fas fa-exclamation-triangle text-red-200 mr-1"></i>
+                            <span class="opacity-90">Requires attention</span>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-purple-500 text-white">
-                        <div class="flex items-center">
-                            <div class="text-2xl font-bold">{{ $reviewComplaints }}</div>
-                            <div class="ml-auto">
-                                <i class="fas fa-search text-3xl"></i>
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow">
+                    <div class="p-6 bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-3xl font-bold">{{ $reviewComplaints }}</div>
+                                <div class="text-sm opacity-90">Dalam Semakan</div>
+                            </div>
+                            <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                                <i class="fas fa-search text-2xl"></i>
                             </div>
                         </div>
-                        <div class="text-sm">Dalam Semakan</div>
+                        <div class="mt-4 flex items-center text-xs">
+                            <i class="fas fa-eye text-blue-200 mr-1"></i>
+                            <span class="opacity-90">Under review</span>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-indigo-500 text-white">
-                        <div class="flex items-center">
-                            <div class="text-2xl font-bold">{{ $assignedComplaints }}</div>
-                            <div class="ml-auto">
-                                <i class="fas fa-user-check text-3xl"></i>
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg hover:shadow-md transition-shadow">
+                    <div class="p-6 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-3xl font-bold">{{ $assignedComplaints }}</div>
+                                <div class="text-sm opacity-90">Assigned</div>
+                            </div>
+                            <div class="bg-white bg-opacity-20 p-3 rounded-full">
+                                <i class="fas fa-user-check text-2xl"></i>
                             </div>
                         </div>
-                        <div class="text-sm">Assigned</div>
-                    </div>
-                </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-orange-500 text-white">
-                        <div class="flex items-center">
-                            <div class="text-2xl font-bold">{{ $inProgressComplaints }}</div>
-                            <div class="ml-auto">
-                                <i class="fas fa-tools text-3xl"></i>
-                            </div>
+                        <div class="mt-4 flex items-center text-xs">
+                            <i class="fas fa-check text-green-200 mr-1"></i>
+                            <span class="opacity-90">Active assignments</span>
                         </div>
-                        <div class="text-sm">In Progress</div>
-                    </div>
-                </div>
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 bg-green-500 text-white">
-                        <div class="flex items-center">
-                            <div class="text-2xl font-bold">{{ $completedComplaints }}</div>
-                            <div class="ml-auto">
-                                <i class="fas fa-check-circle text-3xl"></i>
-                            </div>
-                        </div>
-                        <div class="text-sm">Completed</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Charts and Analytics Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <!-- Complaints Trend Chart -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Complaints Trend</h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-500">Last 30 days</span>
+                                <i class="fas fa-chart-line text-blue-500"></i>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="complaintsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Distribution -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Status Distribution</h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm text-gray-500">Current</span>
+                                <i class="fas fa-chart-pie text-green-500"></i>
+                            </div>
+                        </div>
+                        <div class="h-64">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                            Quick Actions
+                        </h3>
                         <div class="space-y-3">
-                            <a href="{{ route('complaints.review') }}" class="flex items-center p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
-                                <i class="fas fa-search text-purple-500 mr-3"></i>
-                                <span class="text-purple-700 font-medium">Semak Aduan</span>
+                            <a href="{{ route('complaints.review') }}" class="flex items-center p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all duration-200 group">
+                                <i class="fas fa-search text-purple-500 mr-3 group-hover:scale-110 transition-transform"></i>
+                                <div>
+                                    <span class="text-purple-700 font-medium">Semak Aduan</span>
+                                    <p class="text-xs text-purple-600">Review pending complaints</p>
+                                </div>
                             </a>
-                            <a href="{{ route('complaints.prioritize') }}" class="flex items-center p-3 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-colors">
-                                <i class="fas fa-star text-yellow-500 mr-3"></i>
-                                <span class="text-yellow-700 font-medium">Tetapkan Prioriti</span>
+                            <a href="{{ route('complaints.prioritize') }}" class="flex items-center p-3 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-all duration-200 group">
+                                <i class="fas fa-star text-yellow-500 mr-3 group-hover:scale-110 transition-transform"></i>
+                                <div>
+                                    <span class="text-yellow-700 font-medium">Tetapkan Prioriti</span>
+                                    <p class="text-xs text-yellow-600">Set complaint priorities</p>
+                                </div>
                             </a>
-                            <a href="{{ route('complaints.assign.form') }}" class="flex items-center p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
-                                <i class="fas fa-user-check text-indigo-500 mr-3"></i>
-                                <span class="text-indigo-700 font-medium">Assign Kontraktor</span>
+                            <a href="{{ route('complaints.assign.form') }}" class="flex items-center p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all duration-200 group">
+                                <i class="fas fa-user-check text-indigo-500 mr-3 group-hover:scale-110 transition-transform"></i>
+                                <div>
+                                    <span class="text-indigo-700 font-medium">Assign Kontraktor</span>
+                                    <p class="text-xs text-indigo-600">Assign contractors to complaints</p>
+                                </div>
                             </a>
                             <div class="flex items-center p-3 bg-green-50 rounded-lg">
                                 <i class="fab fa-whatsapp text-green-500 mr-3"></i>
-                                <span class="text-green-700 font-medium">WhatsApp Notification: Aktif</span>
+                                <div>
+                                    <span class="text-green-700 font-medium">WhatsApp Notification</span>
+                                    <p class="text-xs text-green-600">Automated notifications active</p>
+                                </div>
+                                <div class="ml-auto">
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-circle text-green-500 mr-1"></i>
+                                        Active
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold mb-4 flex items-center">
+                            <i class="fas fa-history text-blue-500 mr-2"></i>
+                            Recent Activity
+                        </h3>
+                        <div class="space-y-4">
+                            @forelse($recentComplaints ?? [] as $complaint)
+                            <div class="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-file-alt text-blue-600 text-xs"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900">{{ $complaint->complaint_number }}</p>
+                                    <p class="text-xs text-gray-600">{{ Str::limit($complaint->description, 60) }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $complaint->created_at->diffForHumans() }}</p>
+                                </div>
+                                <div>
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                        {{ match($complaint->status) {
+                                            'baru' => 'bg-blue-100 text-blue-800',
+                                            'semakan' => 'bg-indigo-100 text-indigo-800',
+                                            'assigned' => 'bg-purple-100 text-purple-800',
+                                            'proses','in_progress' => 'bg-yellow-100 text-yellow-800',
+                                            'selesai','completed' => 'bg-green-100 text-green-800',
+                                            default => 'bg-gray-100 text-gray-800'
+                                        } }}">
+                                        {{ $statusLabels[$complaint->status] ?? ucfirst($complaint->status) }}
+                                    </span>
+                                </div>
+                            </div>
+                            @empty
+                            <div class="text-center py-8">
+                                <i class="fas fa-inbox text-gray-400 text-3xl mb-2"></i>
+                                <p class="text-gray-500 text-sm">No recent activity</p>
+                            </div>
+                            @endforelse
+                        </div>
+                    </div>
+                </div>
+            </div>
                             </div>
                             <a href="#" class="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
                                 <i class="fas fa-file-download text-gray-500 mr-3"></i>
@@ -345,6 +452,88 @@
             }
             document.body.removeChild(textarea);
         }
+
+        // Initialize Charts
+        const initCharts = () => {
+            // Complaints Trend Chart
+            const complaintsCtx = document.getElementById('complaintsChart');
+            if (complaintsCtx) {
+                new Chart(complaintsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'New Complaints',
+                            data: [12, 19, 15, 25],
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Resolved',
+                            data: [8, 15, 12, 20],
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Status Distribution Chart
+            const statusCtx = document.getElementById('statusChart');
+            if (statusCtx) {
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Baru', 'Semakan', 'Assigned', 'In Progress', 'Completed'],
+                        datasets: [{
+                            data: [{{ $pendingComplaints }}, {{ $reviewComplaints }}, {{ $assignedComplaints }}, {{ $inProgressComplaints ?? 0 }}, {{ $completedComplaints }}],
+                            backgroundColor: [
+                                'rgb(59, 130, 246)',   // blue
+                                'rgb(147, 51, 234)',   // purple
+                                'rgb(99, 102, 241)',   // indigo
+                                'rgb(245, 158, 11)',   // yellow
+                                'rgb(34, 197, 94)'     // green
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        // Initialize charts when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initCharts);
 
         // Auto-refresh every 30 seconds
         setInterval(function() {

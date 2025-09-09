@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class DebugController extends Controller
@@ -26,23 +26,24 @@ class DebugController extends Controller
     public function testLogin(Request $request)
     {
         $user = User::where('email', 'superadmin@demo.com')->first();
-        
+
         if ($user && Hash::check('password123', $user->password)) {
             Auth::login($user);
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Login successful',
                 'user' => Auth::user(),
                 'session_id' => session()->getId(),
-                'redirect_url' => route('dashboard')
+                'redirect_url' => route('dashboard'),
             ]);
         }
-        
+
         return response()->json([
             'status' => 'failed',
             'message' => 'Login failed',
             'user_exists' => $user ? 'yes' : 'no',
-            'password_check' => $user ? Hash::check('password123', $user->password) : false
+            'password_check' => $user ? Hash::check('password123', $user->password) : false,
         ]);
     }
 }

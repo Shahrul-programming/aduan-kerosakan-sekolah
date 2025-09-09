@@ -23,9 +23,10 @@ class RoleMiddleware
             'expected_roles' => $roles,
             'uri' => $request->getRequestUri(),
         ]);
-        if (!$user || !in_array($user->role, $roles)) {
+        if (! $user || ! in_array($user->role, $roles)) {
             abort(403, 'Unauthorized');
         }
+
         return $next($request);
     }
 }

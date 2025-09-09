@@ -150,21 +150,137 @@
                                             </div>
                                         @endif
 
-                                        <form action="{{ route('complaints.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                                        <form action="{{ route('complaints.store') }}"
+                                              method="POST"
+                                              enctype="multipart/form-data"
+                                              class="space-y-6"
+                                              id="complaintForm"
+                                              x-data="complaintForm()">
+
+                                            <!-- Progress Indicator -->
+                                            <div class="mb-8">
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <h3 class="text-lg font-semibold text-gray-900">Progress Penghantaran</h3>
+                                                    <span class="text-sm text-gray-500" x-text="currentStep + '/3'"></span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                                    <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                                                         :style="`width: ${(currentStep / 3) * 100}%`"></div>
+                                                </div>
+                                                <div class="flex justify-between mt-2 text-xs text-gray-600">
+                                                    <span :class="currentStep >= 1 ? 'text-indigo-600 font-medium' : ''">Maklumat Asas</span>
+                                                    <span :class="currentStep >= 2 ? 'text-indigo-600 font-medium' : ''">Butiran Kerosakan</span>
+                                                    <span :class="currentStep >= 3 ? 'text-indigo-600 font-medium' : ''">Media & Hantar</span>
+                                                </div>
+                                            </div>
+
                                             @include('complaints._form_fields')
 
                                             <!-- Submit Buttons -->
                                             <div class="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
-                                                <a href="{{ route('complaints.index') }}" 
-                                                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                                <a href="{{ route('complaints.index') }}"
+                                                   class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                                                     <i class="fas fa-arrow-left mr-2"></i>
                                                     Kembali
                                                 </a>
-                                                <button type="submit" 
-                                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                                    <i class="fas fa-paper-plane mr-2"></i>
-                                                    Hantar Aduan
+                                                <button type="submit"
+                                                        class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
+                                                        :disabled="isSubmitting"
+                                                        :class="isSubmitting ? 'opacity-75 cursor-not-allowed' : ''">
+                                                    <i class="fas fa-spinner fa-spin mr-2" x-show="isSubmitting" x-cloak></i>
+                                                    <i class="fas fa-paper-plane mr-2" x-show="!isSubmitting"></i>
+                                                    <span x-text="isSubmitting ? 'Menghantar...' : 'Hantar Aduan'"></span>
                                                 </button>
                                             </div>
                                         </form>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </x-app-layout>
+
+    <script>
+        function complaintForm() {
+            return {
+                currentStep: 1,
+                isSubmitting: false,
+
+                init() {
+                    // Auto-update progress based on form completion
+                    this.updateProgress();
+
+                    // Watch for form changes
+                    document.querySelectorAll('input, select, textarea').forEach(field => {
+                        field.addEventListener('input', () => this.updateProgress());
+                        field.addEventListener('change', () => this.updateProgress());
+                    });
+                },
+
+                updateProgress() {
+                    const requiredFields = document.querySelectorAll('[required]');
+                    const filledFields = Array.from(requiredFields).filter(field => field.value.trim() !== '');
+
+                    if (filledFields.length >= requiredFields.length * 0.3) {
+                        this.currentStep = 1;
+                    }
+                    if (filledFields.length >= requiredFields.length * 0.6) {
+                        this.currentStep = 2;
+                    }
+                    if (filledFields.length >= requiredFields.length) {
+                        this.currentStep = 3;
+                    }
+                },
+
+                async submitForm() {
+                    if (this.isSubmitting) return;
+
+                    this.isSubmitting = true;
+
+                    try {
+                        const form = document.getElementById('complaintForm');
+                        const formData = new FormData(form);
+
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const result = await response.json();
+
+                        if (response.ok) {
+                            // Success
+                            window.showToast('Aduan berjaya dihantar!', 'success');
+                            setTimeout(() => {
+                                window.location.href = '{{ route("complaints.index") }}';
+                            }, 1500);
+                        } else {
+                            // Handle validation errors
+                            if (result.errors) {
+                                let errorMessage = 'Sila betulkan ralat berikut:\n';
+                                Object.values(result.errors).forEach(errors => {
+                                    errorMessage += '• ' + errors.join('\n• ') + '\n';
+                                });
+                                window.showToast(errorMessage, 'error');
+                            } else {
+                                window.showToast(result.message || 'Ralat berlaku', 'error');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Submit error:', error);
+                        window.showToast('Ralat rangkaian. Sila cuba lagi.', 'error');
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                }
+            }
+        }
+    </script>
+@endsection

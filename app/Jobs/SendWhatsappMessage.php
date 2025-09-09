@@ -15,9 +15,11 @@ class SendWhatsappMessage implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3; // total attempts
+
     public $backoff = [10, 30, 120]; // seconds between retries
 
     protected string $to;
+
     protected string $message;
 
     public function __construct(string $to, string $message)
@@ -29,7 +31,7 @@ class SendWhatsappMessage implements ShouldQueue
     public function handle(): void
     {
         $ok = WhatsappService::sendMessageSync($this->to, $this->message);
-        if (!$ok) {
+        if (! $ok) {
             // Throwing will trigger retry
             throw new \RuntimeException('Failed to send WhatsApp message');
         }
@@ -37,7 +39,7 @@ class SendWhatsappMessage implements ShouldQueue
 
     public function failed(\Throwable $exception): void
     {
-        Log::error('SendWhatsappMessage failed permanently: ' . $exception->getMessage(), [
+        Log::error('SendWhatsappMessage failed permanently: '.$exception->getMessage(), [
             'to' => $this->to,
         ]);
     }

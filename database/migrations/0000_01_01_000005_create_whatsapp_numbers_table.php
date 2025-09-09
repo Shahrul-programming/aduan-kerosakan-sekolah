@@ -1,10 +1,13 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateWhatsappNumbersTable extends Migration {
-    public function up() {
+class CreateWhatsappNumbersTable extends Migration
+{
+    public function up()
+    {
         Schema::create('whatsapp_numbers', function (Blueprint $table) {
             $table->id();
             $table->string('number');
@@ -15,7 +18,9 @@ class CreateWhatsappNumbersTable extends Migration {
             $table->timestamps();
         });
     }
-    public function down() {
+
+    public function down()
+    {
         Schema::dropIfExists('whatsapp_numbers');
     }
 }

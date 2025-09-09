@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\WhatsappNumber;
 use App\Models\Complaint;
+use App\Models\WhatsappNumber;
 use Illuminate\Support\Facades\Log;
 
 class WhatsappService
@@ -25,8 +25,9 @@ class WhatsappService
     {
         // Normalize phone number to international format expected by gateway
         $to = preg_replace('/[^0-9]/', '', (string) $to);
-        if (!$to) {
+        if (! $to) {
             Log::warning('WhatsApp sendMessage skipped: empty number');
+
             return false;
         }
 
@@ -39,8 +40,9 @@ class WhatsappService
             Log::info('WhatsApp (dry-run) Message Sent', [
                 'to' => $to,
                 'message' => $message,
-                'timestamp' => now()
+                'timestamp' => now(),
             ]);
+
             return true;
         }
 
@@ -49,7 +51,7 @@ class WhatsappService
             $response = \Illuminate\Support\Facades\Http::withToken($gatewayToken)
                 ->timeout($timeout)
                 ->asJson()
-                ->post(rtrim($gatewayUrl, '/') . '/send', [
+                ->post(rtrim($gatewayUrl, '/').'/send', [
                     'to' => $to,
                     'message' => $message,
                 ]);
@@ -59,6 +61,7 @@ class WhatsappService
                     'to' => $to,
                     'status' => $response->status(),
                 ]);
+
                 return true;
             }
 
@@ -67,11 +70,13 @@ class WhatsappService
                 'status' => $response->status(),
                 'body' => $response->body(),
             ]);
+
             return false;
         } catch (\Throwable $e) {
-            Log::error('WhatsApp gateway exception: ' . $e->getMessage(), [
+            Log::error('WhatsApp gateway exception: '.$e->getMessage(), [
                 'to' => $to,
             ]);
+
             return false;
         }
     }
@@ -82,11 +87,13 @@ class WhatsappService
     public static function sendMessageAsync($to, $message)
     {
         try {
-            \App\Jobs\SendWhatsappMessage::dispatch((string)$to, (string)$message)
+            \App\Jobs\SendWhatsappMessage::dispatch((string) $to, (string) $message)
                 ->onQueue('notifications');
+
             return true;
         } catch (\Throwable $e) {
-            Log::error('Failed to dispatch WhatsApp job: ' . $e->getMessage());
+            Log::error('Failed to dispatch WhatsApp job: '.$e->getMessage());
+
             // Fallback: try sync to not lose message
             return self::sendMessageSync($to, $message);
         }
@@ -97,13 +104,13 @@ class WhatsappService
      */
     public static function sendNewComplaintNotification(Complaint $complaint)
     {
-        $message = "🚨 *ADUAN BARU* 🚨\n\n" .
-                   "📋 No: {$complaint->complaint_number}\n" .
-                   "🏫 Sekolah: {$complaint->school->name}\n" .
-                   "📝 Kategori: {$complaint->category}\n" .
-                   "⚡ Prioriti: " . strtoupper($complaint->priority) . "\n" .
-                   "📄 Deskripsi: {$complaint->description}\n\n" .
-                   "Sila semak sistem untuk tindakan lanjut.";
+        $message = "🚨 *ADUAN BARU* 🚨\n\n".
+                   "📋 No: {$complaint->complaint_number}\n".
+                   "🏫 Sekolah: {$complaint->school->name}\n".
+                   "📝 Kategori: {$complaint->category}\n".
+                   '⚡ Prioriti: '.strtoupper($complaint->priority)."\n".
+                   "📄 Deskripsi: {$complaint->description}\n\n".
+                   'Sila semak sistem untuk tindakan lanjut.';
 
         // Send to pengurusan phone numbers
         $pengurusanUsers = \App\Models\User::where('role', 'pengurusan')
@@ -121,19 +128,19 @@ class WhatsappService
      */
     public static function sendAssignmentNotification(Complaint $complaint)
     {
-        if (!$complaint->contractor || !$complaint->contractor->phone) {
+        if (! $complaint->contractor || ! $complaint->contractor->phone) {
             return;
         }
 
-        $message = "🔨 *TUGASAN BARU* 🔨\n\n" .
-                   "📋 No: {$complaint->complaint_number}\n" .
-                   "🏫 Sekolah: {$complaint->school->name}\n" .
-                   "📝 Kategori: {$complaint->category}\n" .
-                   "⚡ Prioriti: " . strtoupper($complaint->priority) . "\n" .
-                   "📄 Deskripsi: {$complaint->description}\n\n" .
-                   "Sila login ke sistem untuk menerima atau menolak tugasan ini.";
+        $message = "🔨 *TUGASAN BARU* 🔨\n\n".
+                   "📋 No: {$complaint->complaint_number}\n".
+                   "🏫 Sekolah: {$complaint->school->name}\n".
+                   "📝 Kategori: {$complaint->category}\n".
+                   '⚡ Prioriti: '.strtoupper($complaint->priority)."\n".
+                   "📄 Deskripsi: {$complaint->description}\n\n".
+                   'Sila login ke sistem untuk menerima atau menolak tugasan ini.';
 
-    self::sendMessageAsync($complaint->contractor->phone, $message);
+        self::sendMessageAsync($complaint->contractor->phone, $message);
     }
 
     /**
@@ -143,12 +150,12 @@ class WhatsappService
     {
         $status = $complaint->acknowledged_status === 'accepted' ? 'MENERIMA' : 'MENOLAK';
         $emoji = $complaint->acknowledged_status === 'accepted' ? '✅' : '❌';
-        
-        $message = "{$emoji} *TUGASAN {$status}* {$emoji}\n\n" .
-                   "📋 No: {$complaint->complaint_number}\n" .
-                   "👷 Kontraktor: {$complaint->contractor->name}\n" .
-                   "📊 Status: " . ($complaint->acknowledged_status === 'accepted' ? 'Diterima' : 'Ditolak') . "\n\n" .
-                   "Sila semak sistem untuk maklumat lanjut.";
+
+        $message = "{$emoji} *TUGASAN {$status}* {$emoji}\n\n".
+                   "📋 No: {$complaint->complaint_number}\n".
+                   "👷 Kontraktor: {$complaint->contractor->name}\n".
+                   '📊 Status: '.($complaint->acknowledged_status === 'accepted' ? 'Diterima' : 'Ditolak')."\n\n".
+                   'Sila semak sistem untuk maklumat lanjut.';
 
         // Send to pengurusan phone numbers
         $pengurusanUsers = \App\Models\User::where('role', 'pengurusan')
@@ -166,19 +173,19 @@ class WhatsappService
      */
     public static function sendProgressUpdateNotification(Complaint $complaint, $progressDescription)
     {
-        $message = "🔄 *KEMASKINI PROGRESS* 🔄\n\n" .
-                   "📋 No: {$complaint->complaint_number}\n" .
-                   "👷 Kontraktor: {$complaint->contractor->name}\n" .
-                   "📝 Progress: {$progressDescription}\n\n" .
-                   "Sila semak sistem untuk gambar dan maklumat lengkap.";
+        $message = "🔄 *KEMASKINI PROGRESS* 🔄\n\n".
+                   "📋 No: {$complaint->complaint_number}\n".
+                   "👷 Kontraktor: {$complaint->contractor->name}\n".
+                   "📝 Progress: {$progressDescription}\n\n".
+                   'Sila semak sistem untuk gambar dan maklumat lengkap.';
 
         // Send to pengurusan and complaint creator
-        $users = \App\Models\User::where(function($query) use ($complaint) {
+        $users = \App\Models\User::where(function ($query) use ($complaint) {
             $query->where('role', 'pengurusan')
-                  ->where('school_id', $complaint->school_id);
+                ->where('school_id', $complaint->school_id);
         })->orWhere('id', $complaint->user_id)
-        ->whereNotNull('phone')
-        ->get();
+            ->whereNotNull('phone')
+            ->get();
 
         foreach ($users as $user) {
             self::sendMessageAsync($user->phone, $message);
@@ -190,20 +197,20 @@ class WhatsappService
      */
     public static function sendCompletionNotification(Complaint $complaint)
     {
-        $message = "🎉 *ADUAN SELESAI* 🎉\n\n" .
-                   "📋 No: {$complaint->complaint_number}\n" .
-                   "🏫 Sekolah: {$complaint->school->name}\n" .
-                   "📝 Kategori: {$complaint->category}\n" .
-                   "👷 Kontraktor: {$complaint->contractor->name}\n\n" .
-                   "Terima kasih atas kerjasama anda! 🙏";
+        $message = "🎉 *ADUAN SELESAI* 🎉\n\n".
+                   "📋 No: {$complaint->complaint_number}\n".
+                   "🏫 Sekolah: {$complaint->school->name}\n".
+                   "📝 Kategori: {$complaint->category}\n".
+                   "👷 Kontraktor: {$complaint->contractor->name}\n\n".
+                   'Terima kasih atas kerjasama anda! 🙏';
 
         // Send to pengurusan and complaint creator
-        $users = \App\Models\User::where(function($query) use ($complaint) {
+        $users = \App\Models\User::where(function ($query) use ($complaint) {
             $query->where('role', 'pengurusan')
-                  ->where('school_id', $complaint->school_id);
+                ->where('school_id', $complaint->school_id);
         })->orWhere('id', $complaint->user_id)
-        ->whereNotNull('phone')
-        ->get();
+            ->whereNotNull('phone')
+            ->get();
 
         foreach ($users as $user) {
             self::sendMessageAsync($user->phone, $message);
@@ -231,6 +238,7 @@ class WhatsappService
         // If gateway not configured, return an empty string (UI will show generate option)
         if (empty($gatewayUrl) || empty($gatewayToken)) {
             \Log::warning('generateQRCode: gateway not configured');
+
             return '';
         }
 
@@ -238,47 +246,52 @@ class WhatsappService
             $resp = \Illuminate\Support\Facades\Http::withToken($gatewayToken)
                 ->timeout($timeout)
                 ->acceptJson()
-                ->get(rtrim($gatewayUrl, '/') . '/qr', [
+                ->get(rtrim($gatewayUrl, '/').'/qr', [
                     'number' => preg_replace('/[^0-9]/', '', (string) $phoneNumber),
                 ]);
 
-            if (!$resp->successful()) {
+            if (! $resp->successful()) {
                 \Log::error('generateQRCode: gateway error', ['status' => $resp->status(), 'body' => $resp->body()]);
+
                 return '';
             }
 
             // Try decode JSON { qr: '...', type: 'data-url|base64' }
             $body = $resp->body();
             $data = null;
-            try { $data = $resp->json(); } catch (\Throwable $e) { /* may not be JSON */ }
+            try {
+                $data = $resp->json();
+            } catch (\Throwable $e) { /* may not be JSON */
+            }
 
             $qr = '';
             if (is_array($data)) {
-                if (!empty($data['qr'])) {
+                if (! empty($data['qr'])) {
                     $qr = (string) $data['qr'];
-                } elseif (!empty($data['image'])) {
+                } elseif (! empty($data['image'])) {
                     $qr = (string) $data['image'];
-                } elseif (!empty($data['data'])) {
+                } elseif (! empty($data['data'])) {
                     $qr = (string) $data['data'];
                 }
             }
 
-            if (!$qr) {
+            if (! $qr) {
                 // Fallback: body might already be a data URL or base64
                 $qr = trim($body);
             }
 
             // Ensure data URL prefix for <img src>
-            if ($qr && !str_starts_with($qr, 'data:image')) {
+            if ($qr && ! str_starts_with($qr, 'data:image')) {
                 // If it's raw base64, prefix
-                if (preg_match('/^[A-Za-z0-9+\/]+=*$/', str_replace(["\r","\n"], '', $qr))) {
-                    $qr = 'data:image/png;base64,' . $qr;
+                if (preg_match('/^[A-Za-z0-9+\/]+=*$/', str_replace(["\r", "\n"], '', $qr))) {
+                    $qr = 'data:image/png;base64,'.$qr;
                 }
             }
 
             return $qr;
         } catch (\Throwable $e) {
-            \Log::error('generateQRCode: exception ' . $e->getMessage());
+            \Log::error('generateQRCode: exception '.$e->getMessage());
+
             return '';
         }
     }

@@ -1,4 +1,5 @@
 <?php
+
 namespace Tests\Feature;
 
 use App\Models\School;
@@ -50,7 +51,7 @@ class SchoolCrudTest extends TestCase
             'hem_name' => 'PK HEM Edit',
             'hem_phone' => '0199999999',
         ];
-        $response = $this->put('/schools/' . $school->id, $data);
+        $response = $this->put('/schools/'.$school->id, $data);
         $response->assertRedirect('/schools');
         $this->assertDatabaseHas('schools', ['name' => 'Sekolah Edit']);
     }
@@ -60,7 +61,7 @@ class SchoolCrudTest extends TestCase
         $user = User::factory()->create(['role' => 'super_admin']);
         $school = School::factory()->create();
         $this->actingAs($user);
-        $response = $this->delete('/schools/' . $school->id);
+        $response = $this->delete('/schools/'.$school->id);
         $response->assertRedirect('/schools');
         $this->assertDatabaseMissing('schools', ['id' => $school->id]);
     }

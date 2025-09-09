@@ -1,9 +1,10 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\School;
 use App\Models\User;
+use Illuminate\Http\Request;
 
 class TeacherController extends Controller
 {
@@ -15,9 +16,10 @@ class TeacherController extends Controller
         // Case-insensitive and trimmed lookup to avoid accidental mismatch
         $school = School::whereRaw('LOWER(code) = ?', [strtolower($received)])->first();
         \Log::info('Hasil query sekolah:', ['school_id' => $school ? $school->id : null, 'school_code' => $school ? $school->code : null]);
-        if (!$school) {
-            abort(404, 'Kod sekolah tidak dijumpai: ' . $received);
+        if (! $school) {
+            abort(404, 'Kod sekolah tidak dijumpai: '.$received);
         }
+
         return view('teachers.register', compact('school'));
     }
 
@@ -31,7 +33,7 @@ class TeacherController extends Controller
             'password' => 'required|min:6|confirmed',
             'phone' => 'required',
         ]);
-        $user = new User();
+        $user = new User;
         $user->name = $request->name;
         $user->email = $request->email;
         $user->password = bcrypt($request->password);
@@ -39,6 +41,7 @@ class TeacherController extends Controller
         $user->role = 'teacher';
         $user->school_id = $school->id;
         $user->save();
+
         return redirect()->route('login')->with('success', 'Pendaftaran guru berjaya!');
     }
 }

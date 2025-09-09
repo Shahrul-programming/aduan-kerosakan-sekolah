@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\User;
 use App\Models\School;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class TeacherComplaintTest extends TestCase
 {
@@ -45,10 +45,10 @@ class TeacherComplaintTest extends TestCase
             'priority' => 'sederhana',
         ];
 
-    $response = $this->post(route('complaints.store'), $payload);
+        $response = $this->post(route('complaints.store'), $payload);
 
-    // Guru dialihkan ke dashboard selepas hantar aduan
-    $response->assertRedirect(route('dashboard'));
+        // Guru dialihkan ke dashboard selepas hantar aduan
+        $response->assertRedirect(route('dashboard'));
 
         $this->assertDatabaseHas('complaints', [
             'title' => 'Kipas rosak',

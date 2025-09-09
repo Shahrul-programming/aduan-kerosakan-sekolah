@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Complaint;
+use Illuminate\Http\Request;
 
 class TechnicianController extends Controller
 {
@@ -12,6 +12,7 @@ class TechnicianController extends Controller
         $complaints = Complaint::with(['school', 'user'])
             ->where('assigned_to', auth()->id())
             ->latest()->paginate(10);
+
         return view('technician.dashboard', compact('complaints'));
     }
 
@@ -31,6 +32,7 @@ class TechnicianController extends Controller
             ]);
         }
         $complaint->save();
+
         return redirect()->route('technician.dashboard')->with('success', 'Status aduan berjaya dikemaskini.');
     }
 }

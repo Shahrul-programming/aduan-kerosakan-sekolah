@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Contractor;
 use App\Services\NotificationService;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
 class ComplaintController extends Controller
@@ -16,6 +15,7 @@ class ComplaintController extends Controller
         // Note: roles 'guru' and 'teacher' are treated as synonyms in this app.
         $this->middleware('role:guru,teacher')->only(['create', 'store']);
     }
+
     /**
      * Display a listing of the resource.
      */
@@ -30,7 +30,7 @@ class ComplaintController extends Controller
         }
 
         // Teacher: only see complaints reported by them
-        if (in_array(auth()->user()->role, ['guru','teacher'])) {
+        if (in_array(auth()->user()->role, ['guru', 'teacher'])) {
             $query->where('reported_by', auth()->id());
         }
 
@@ -44,6 +44,7 @@ class ComplaintController extends Controller
             $query->where('priority', $request->priority);
         }
         $complaints = $query->latest()->paginate(10)->appends($request->all());
+
         return view('complaints.index', compact('complaints', 'schools'));
     }
 
@@ -53,6 +54,7 @@ class ComplaintController extends Controller
     public function create()
     {
         $schools = \App\Models\School::all();
+
         return view('complaints.create', compact('schools'));
     }
 
@@ -70,7 +72,7 @@ class ComplaintController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'video' => 'nullable|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime|max:10240',
         ]);
-        
+
         // If the authenticated user is a teacher, enforce their school_id server-side
         $userRole = null;
         if (auth()->check()) {
@@ -85,7 +87,7 @@ class ComplaintController extends Controller
             }
             $validated['school_id'] = $userSchoolId;
         }
-        
+
         // Auto-generate complaint number
         $validated['complaint_number'] = $this->generateComplaintNumber();
         $validated['user_id'] = auth()->id();
@@ -98,7 +100,7 @@ class ComplaintController extends Controller
             }
         } catch (\Exception $e) {
             // If DB connection or schema check fails, skip adding the field to avoid SQL errors
-            \Log::warning('Schema check failed for reporter_phone: ' . $e->getMessage());
+            \Log::warning('Schema check failed for reporter_phone: '.$e->getMessage());
         }
         $validated['status'] = 'baru';
         $validated['reported_at'] = now();
@@ -114,6 +116,7 @@ class ComplaintController extends Controller
             $complaint = \App\Models\Complaint::create($validated);
         } catch (\Exception $e) {
             \Log::error('Failed to create complaint', ['error' => $e->getMessage(), 'payload' => $validated]);
+
             // Return a friendly error to the user while preserving input
             return back()->withInput()->withErrors(['general' => 'Gagal menghantar aduan. Sila semak data dan cuba lagi atau hubungi pentadbir.']);
         }
@@ -137,15 +140,15 @@ class ComplaintController extends Controller
     {
         $year = date('Y');
         $month = date('m');
-        
+
         // Format: ADU-YYYY-MM-XXXX (e.g., ADU-2025-09-0001)
         $prefix = "ADU-{$year}-{$month}-";
-        
+
         // Get the last complaint number for this month
-        $lastComplaint = \App\Models\Complaint::where('complaint_number', 'like', $prefix . '%')
+        $lastComplaint = \App\Models\Complaint::where('complaint_number', 'like', $prefix.'%')
             ->orderBy('complaint_number', 'desc')
             ->first();
-        
+
         if ($lastComplaint) {
             // Extract the sequence number and increment
             $lastNumber = (int) substr($lastComplaint->complaint_number, -4);
@@ -153,9 +156,9 @@ class ComplaintController extends Controller
         } else {
             $nextNumber = 1;
         }
-        
+
         // Format with leading zeros
-        return $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -164,6 +167,7 @@ class ComplaintController extends Controller
     public function show($id)
     {
         $complaint = \App\Models\Complaint::with(['school', 'user'])->findOrFail($id);
+
         return view('complaints.show', compact('complaint'));
     }
 
@@ -176,11 +180,11 @@ class ComplaintController extends Controller
         $schools = \App\Models\School::all();
         // Only show contractors associated with this complaint's school.
         // A contractor may be assigned via direct school_id or via the contractor_school pivot table.
-        $contractors = Contractor::where(function($q) use ($complaint) {
+        $contractors = Contractor::where(function ($q) use ($complaint) {
             $q->where('school_id', $complaint->school_id)
-              ->orWhereHas('schools', function($q2) use ($complaint) {
-                  $q2->where('schools.id', $complaint->school_id);
-              });
+                ->orWhereHas('schools', function ($q2) use ($complaint) {
+                    $q2->where('schools.id', $complaint->school_id);
+                });
         })->orderBy('name')->get()->unique('name')->values();
 
         // Localized labels for Blade (status and priority)
@@ -193,7 +197,7 @@ class ComplaintController extends Controller
             'selesai' => 'Selesai',
             'pending' => 'Pending',
             'in_progress' => 'Dalam Progress',
-            'completed' => 'Selesai (completed)'
+            'completed' => 'Selesai (completed)',
         ];
 
         $priorities = [
@@ -202,7 +206,7 @@ class ComplaintController extends Controller
             'tinggi' => 'Tinggi',
         ];
 
-    return view('complaints.edit', compact('complaint', 'contractors', 'statuses', 'priorities', 'schools'));
+        return view('complaints.edit', compact('complaint', 'contractors', 'statuses', 'priorities', 'schools'));
     }
 
     /**
@@ -259,7 +263,7 @@ class ComplaintController extends Controller
                 $complaint->assigned_at = now();
             }
         } catch (\Exception $e) {
-            \Log::warning('Schema check failed while assigning complaint: ' . $e->getMessage());
+            \Log::warning('Schema check failed while assigning complaint: '.$e->getMessage());
         }
         $complaint->save();
 
@@ -295,7 +299,7 @@ class ComplaintController extends Controller
                 $complaint->assigned_at = null;
             }
         } catch (\Exception $e) {
-            \Log::warning('Schema check failed while unassigning complaint: ' . $e->getMessage());
+            \Log::warning('Schema check failed while unassigning complaint: '.$e->getMessage());
         }
         $complaint->save();
 
@@ -314,7 +318,7 @@ class ComplaintController extends Controller
     {
         $complaint = \App\Models\Complaint::findOrFail($id);
         $validated = $request->validate([
-            'complaint_number' => 'required|unique:complaints,complaint_number,' . $complaint->id,
+            'complaint_number' => 'required|unique:complaints,complaint_number,'.$complaint->id,
             'school_id' => 'required|exists:schools,id',
             'category' => 'required',
             'description' => 'required',
@@ -335,16 +339,16 @@ class ComplaintController extends Controller
         }
 
         $complaint->update($validated);
-        
+
         // Log aktiviti dan hantar notifikasi
         if ($request->filled('assigned_to')) {
             \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'assign kontraktor', $complaint->id);
             NotificationService::sendAssignmentNotification($complaint->fresh());
         }
         if ($request->has('status')) {
-            \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'ubah status: ' . $request->status, $complaint->id);
+            \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'ubah status: '.$request->status, $complaint->id);
         }
-        
+
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dikemaskini.');
     }
 
@@ -355,6 +359,7 @@ class ComplaintController extends Controller
     {
         $complaint = \App\Models\Complaint::findOrFail($id);
         $complaint->delete();
+
         return redirect()->route('complaints.index')->with('success', 'Aduan berjaya dipadam.');
     }
 
@@ -386,12 +391,12 @@ class ComplaintController extends Controller
             }
         }
 
-        if (!$canAcknowledge) {
+        if (! $canAcknowledge) {
             abort(403);
         }
 
         $status = $request->input('acknowledge');
-        if (!in_array($status, ['accepted', 'rejected'])) {
+        if (! in_array($status, ['accepted', 'rejected'])) {
             return back()->with('error', 'Status tidak sah.');
         }
 
@@ -435,7 +440,7 @@ class ComplaintController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|in:pending,semakan,assigned,in_progress,completed'
+            'status' => 'required|in:pending,semakan,assigned,in_progress,completed',
         ]);
 
         // Authorization: allow school_admin for the complaint school and super_admin as before.
@@ -475,11 +480,11 @@ class ComplaintController extends Controller
     public function updatePriority(Request $request, \App\Models\Complaint $complaint)
     {
         $request->validate([
-            'priority' => 'required|in:urgent,tinggi,sederhana,rendah'
+            'priority' => 'required|in:urgent,tinggi,sederhana,rendah',
         ]);
 
         $complaint->update(['priority' => $request->priority]);
-        
+
         return response()->json(['success' => true, 'message' => 'Priority updated successfully']);
     }
 
@@ -489,6 +494,7 @@ class ComplaintController extends Controller
     public function assignForm(\App\Models\Complaint $complaint)
     {
         $contractors = \App\Models\User::where('role', 'kontraktor')->get();
+
         return view('complaints.assign_form', compact('complaint', 'contractors'));
     }
 
@@ -522,6 +528,7 @@ class ComplaintController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('complaints.work_order_pdf', $data);
         $filename = sprintf('work-order-%s-%s.pdf', $complaint->complaint_number, $complaint->id);
+
         return $pdf->download($filename);
     }
 }

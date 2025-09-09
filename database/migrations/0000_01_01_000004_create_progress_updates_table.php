@@ -1,10 +1,13 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateProgressUpdatesTable extends Migration {
-    public function up() {
+class CreateProgressUpdatesTable extends Migration
+{
+    public function up()
+    {
         Schema::create('progress_updates', function (Blueprint $table) {
             $table->id();
             $table->foreignId('complaint_id')->constrained('complaints')->onDelete('cascade');
@@ -15,7 +18,9 @@ class CreateProgressUpdatesTable extends Migration {
             $table->timestamps();
         });
     }
-    public function down() {
+
+    public function down()
+    {
         Schema::dropIfExists('progress_updates');
     }
 }

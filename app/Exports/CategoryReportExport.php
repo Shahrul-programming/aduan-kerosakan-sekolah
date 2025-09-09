@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 class CategoryReportExport implements FromCollection, WithHeadings
 {
     protected $data;
+
     protected $headings;
 
     public function __construct($data, $headings)

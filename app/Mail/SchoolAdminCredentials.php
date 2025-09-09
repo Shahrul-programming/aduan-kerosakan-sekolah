@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
@@ -10,7 +11,9 @@ class SchoolAdminCredentials extends Mailable
     use Queueable, SerializesModels;
 
     public $user;
+
     public $password;
+
     public $school;
 
     /**
@@ -28,12 +31,12 @@ class SchoolAdminCredentials extends Mailable
      */
     public function build()
     {
-        return $this->subject('Maklumat Login Admin Sekolah - ' . ($this->school->name ?? 'Sekolah'))
-                    ->view('emails.school_admin_credentials')
-                    ->with([
-                        'user' => $this->user,
-                        'password' => $this->password,
-                        'school' => $this->school,
-                    ]);
+        return $this->subject('Maklumat Login Admin Sekolah - '.($this->school->name ?? 'Sekolah'))
+            ->view('emails.school_admin_credentials')
+            ->with([
+                'user' => $this->user,
+                'password' => $this->password,
+                'school' => $this->school,
+            ]);
     }
 }
