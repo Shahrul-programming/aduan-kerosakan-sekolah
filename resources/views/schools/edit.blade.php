@@ -56,6 +56,55 @@
                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">Kemaskini</button>
             </div>
         </form>
+
+            <div class="mt-6 p-4 bg-gray-50 rounded">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Pautan Pendaftaran Guru (Self-register)</h3>
+                @php
+                    $registerUrl = url('/daftar-guru/' . $school->code);
+                @endphp
+                <div class="flex gap-2 items-center">
+                    <input type="text" id="registerLink" class="w-full rounded border p-2 text-sm" value="{{ $registerUrl }}" readonly>
+                    <button type="button" onclick="copyRegisterLink()" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">Salin</button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Sesiapa yang mendaftar melalui pautan ini akan didaftarkan sebagai guru untuk sekolah ini sahaja.</p>
+            </div>
+
+            @if(auth()->check() && auth()->user()->role === 'super_admin')
+            <div class="mt-6 p-4 bg-gray-50 rounded">
+                <h3 class="text-sm font-medium text-gray-700 mb-2">Lantik Admin Sekolah</h3>
+                <form action="{{ route('schools.assign-admin', $school) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    @csrf
+                    <div>
+                        <label class="block text-xs text-gray-600">Nama Penuh</label>
+                        <input type="text" name="name" class="mt-1 w-full rounded border p-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600">Jawatan</label>
+                        <input type="text" name="position" class="mt-1 w-full rounded border p-2 text-sm" placeholder="Contoh: Penolong Kanan HEM">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600">Email</label>
+                        <input type="email" name="email" class="mt-1 w-full rounded border p-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600">No. WhatsApp</label>
+                        <input type="text" name="phone" class="mt-1 w-full rounded border p-2 text-sm" placeholder="6012XXXXXXXX">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600">Password</label>
+                        <input type="password" name="password" class="mt-1 w-full rounded border p-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600">Sahkan Password</label>
+                        <input type="password" name="password_confirmation" class="mt-1 w-full rounded border p-2 text-sm" required>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end">
+                        <button class="px-4 py-2 bg-green-600 text-white rounded text-sm">Lantik Admin</button>
+                    </div>
+                </form>
+                <p class="text-xs text-gray-500 mt-2">Melantik admin baharu akan menukar (nyah-lantik) admin sedia ada untuk sekolah ini.</p>
+            </div>
+            @endif
     </div>
 </div>
 @endsection

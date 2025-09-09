@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\WhatsappNumber;
 use App\Services\WhatsappService;
+use Illuminate\Support\Facades\Http;
 
 class WhatsappController extends Controller
 {
@@ -92,6 +93,30 @@ class WhatsappController extends Controller
             return redirect()->back()->with('success', 'Test WhatsApp berjaya dihantar!');
         } else {
             return redirect()->back()->with('error', 'Gagal hantar test message. Sila semak sambungan.');
+        }
+    }
+
+    /**
+     * Check WhatsApp gateway health
+     */
+    public function health()
+    {
+        $url = rtrim(config('whatsapp.gateway_url', ''), '/');
+        $token = config('whatsapp.gateway_token', '');
+        $timeout = (int) config('whatsapp.timeout', 10);
+
+        if (!$url || !$token) {
+            return redirect()->back()->with('error', 'Gateway belum dikonfigurasi. Sila isi WA_GATEWAY_URL dan WA_GATEWAY_TOKEN dalam .env');
+        }
+
+        try {
+            $resp = Http::withToken($token)->timeout($timeout)->get($url . '/health');
+            if ($resp->successful()) {
+                return redirect()->back()->with('success', 'Gateway OK: ' . substr($resp->body(), 0, 200));
+            }
+            return redirect()->back()->with('error', 'Gateway tidak OK: HTTP ' . $resp->status());
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Ralat sambungan gateway: ' . $e->getMessage());
         }
     }
 }

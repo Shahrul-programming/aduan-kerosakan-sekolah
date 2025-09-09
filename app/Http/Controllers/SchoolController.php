@@ -55,51 +55,22 @@ class SchoolController extends Controller
         $request->validate([
             'name' => 'required',
             'code' => 'required|unique:schools',
-            'address' => 'required',
-            'principal_name' => 'required',
-            'principal_phone' => 'required',
-            'hem_name' => 'required',
-            'hem_phone' => 'required',
-            // optional admin fields will be validated conditionally
-            'admin_email' => 'nullable|email|unique:users,email',
-            'admin_password' => 'nullable|confirmed|min:6',
+            // For simple create flow, only Nama & Kod diperlukan seperti kehendak baru.
+            // Medan lain boleh dikemaskini kemudian di halaman edit sekolah.
         ]);
         
-        // Cipta sekolah
-        $school = \App\Models\School::create($request->all());
-        
-        // Automatik cipta akaun admin sekolah
-        if ($request->filled('admin_email') && $request->filled('admin_name') && $request->filled('admin_password')) {
-            $user = new \App\Models\User();
-            $user->name = $request->admin_name;
-            $user->email = $request->admin_email;
-            $user->password = bcrypt($request->admin_password);
-            $user->role = 'school_admin';
-            $user->school_id = $school->id;
-            $user->save();
-            $plaintextPassword = $request->admin_password;
-            $loginInfo = 'Login: ' . $user->email . ' | Password: (yang anda tetapkan)';
-        } else {
-            $user = new \App\Models\User();
-            $user->name = 'Admin ' . $request->name;
-            $user->email = $request->code . '@sekolah.admin'; // Guna kod sekolah sebagai email
-            $plaintextPassword = 'password';
-            $user->password = bcrypt($plaintextPassword); // Password default
-            $user->role = 'school_admin';
-            $user->school_id = $school->id;
-            $user->save();
-            $loginInfo = 'Login: ' . $user->email . ' | Password: password';
-        }
+        // Cipta sekolah – hanya nama & kod diperlukan
+        $school = new \App\Models\School();
+        $school->name = $request->input('name');
+        $school->code = $request->input('code');
+        $school->address = $request->input('address', '');
+        $school->principal_name = $request->input('principal_name', '');
+        $school->principal_phone = $request->input('principal_phone', '');
+        $school->hem_name = $request->input('hem_name', '');
+        $school->hem_phone = $request->input('hem_phone', '');
+        $school->save();
 
-        // Hantar email credential (bergantung pada MAIL_MAILER di .env)
-        try {
-            \Mail::to($user->email)->send(new \App\Mail\SchoolAdminCredentials($user, $plaintextPassword, $school));
-        } catch (\Exception $ex) {
-            // Log and continue; do not fail the whole request because of mail issues
-            \Log::error('Gagal hantar email credential admin sekolah', ['error' => $ex->getMessage(), 'school_id' => $school->id]);
-        }
-        
-    return redirect()->route('schools.index')->with('success', 'Sekolah berjaya ditambah dan akaun admin sekolah telah dicipta. ' . $loginInfo);
+        return redirect()->route('schools.index')->with('success', 'Sekolah berjaya ditambah. Seterusnya, lantik Admin Sekolah melalui halaman Edit Sekolah.');
     }
 
     /**
@@ -190,5 +161,66 @@ class SchoolController extends Controller
             'password_hint' => $password_hint,
             'school_code' => $school->code,
         ]);
+    }
+
+    /**
+     * Lantik admin sekolah (Pilihan A: Super admin lantik terus)
+     */
+    public function assignAdmin(Request $request, $id)
+    {
+        // Pastikan hanya super_admin dibenarkan (middleware di route juga melindungi)
+        if (!auth()->check() || auth()->user()->role !== 'super_admin') {
+            abort(403);
+        }
+
+        $school = \App\Models\School::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'position' => 'nullable|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'phone' => 'nullable|string|max:30',
+            'password' => 'required|confirmed|min:6',
+        ]);
+
+        \DB::beginTransaction();
+        try {
+            // Nyah-lantik admin lama (jika ada) – polisi: satu admin per sekolah
+            $prev = \App\Models\User::where('role','school_admin')->where('school_id', $school->id)->first();
+            if ($prev) {
+                $prev->role = 'guru'; // atau null mengikut polisi
+                $prev->save();
+            }
+
+            // Cipta user baharu sebagai admin sekolah
+            $user = new \App\Models\User();
+            $user->name = $validated['name'];
+            $user->position = $validated['position'] ?? null;
+            $user->email = $validated['email'];
+            $user->phone = $validated['phone'] ?? null;
+            $user->password = bcrypt($validated['password']);
+            $user->role = 'school_admin';
+            $user->school_id = $school->id;
+            $user->save();
+
+            // Log aktiviti (tanpa kaitan aduan). Jangan isi complaint_id dengan school_id.
+            \App\Http\Controllers\ActivityLogController::log(
+                auth()->id(),
+                'lantik admin sekolah: ' . $user->email . ' (school: ' . $school->code . ')',
+                null
+            );
+            try {
+                \Mail::to($user->email)->send(new \App\Mail\SchoolAdminCredentials($user, $validated['password'], $school));
+            } catch (\Exception $e) {
+                \Log::warning('Gagal hantar email credential admin sekolah: '.$e->getMessage());
+            }
+
+            \DB::commit();
+            return back()->with('success', 'User berjaya dilantik sebagai Admin Sekolah.');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Gagal lantik admin sekolah', ['error' => $e->getMessage(), 'school_id' => $school->id]);
+            return back()->withErrors(['general' => 'Gagal melantik admin sekolah.']);
+        }
     }
 }

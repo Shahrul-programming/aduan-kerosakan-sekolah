@@ -2,7 +2,29 @@
 @section('content')
 <div class="max-w-4xl mx-auto py-8 px-4">
     <div class="bg-white dark:bg-gray-800 shadow sm:rounded-lg p-6">
-        <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Maklumat Aduan</h1>
+        @php
+            // Determine if current user is the assigned contractor (used for header actions)
+            $isAssignedToThisUser = false;
+            if (auth()->check()) {
+                $user = auth()->user();
+                if (method_exists($user, 'contractor') && $user->contractor) {
+                    $isAssignedToThisUser = ($complaint->assigned_to == $user->contractor->id);
+                } else {
+                    $isAssignedToThisUser = ($complaint->assigned_to == $user->id);
+                }
+            }
+        @endphp
+
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Maklumat Aduan</h1>
+                <div class="text-sm text-gray-500 mt-1">No. Aduan: <span class="font-medium text-gray-800">{{ $complaint->complaint_number }}</span></div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="{{ route('complaints.edit', $complaint) }}" class="px-3 py-2 bg-yellow-500 text-white rounded">Update progress</a>
+                <a href="{{ route('complaints.index') }}" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded">Kembali</a>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -16,8 +38,20 @@
                         <dd class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $complaint->school->name ?? '-' }}</dd>
                     </div>
                     <div>
+                        <dt class="text-sm text-gray-500">Nama Pengadu</dt>
+                        <dd class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ $complaint->user->name ?? ($complaint->reported_by_name ?? '-') }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-500">No. Telefon Pengadu</dt>
+                        <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ $complaint->reporter_phone ?? $complaint->user->phone ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm text-gray-500">Tarikh Lapor</dt>
+                        <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ optional($complaint->reported_at)->format('d/m/Y H:i') ?? '-' }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-sm text-gray-500">Kategori</dt>
-                        <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ $complaint->category }}</dd>
+                        <dd class="mt-1 text-gray-700 dark:text-gray-300">{{ ucfirst($complaint->category) }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-gray-500">Prioriti</dt>
@@ -35,42 +69,40 @@
                 <p class="mt-1 text-gray-800 dark:text-gray-200">{{ $complaint->description }}</p>
 
                 @if($complaint->contractor)
-                <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded">
-                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-200">Kontraktor Ditugaskan</h4>
-                    <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $complaint->contractor->name }} <span class="text-gray-500">({{ $complaint->contractor->company_name }})</span></div>
-                    <div class="text-sm text-gray-600">{{ $complaint->contractor->phone }} &middot; {{ $complaint->contractor->email }}</div>
-                    <div class="mt-2">
-                        @if($complaint->acknowledged_status === 'pending')
-                            <span class="inline-flex items-center px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">Belum Diterima</span>
-                        @elseif($complaint->acknowledged_status === 'accepted')
-                            <span class="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-800 text-xs">Diterima</span>
-                        @elseif($complaint->acknowledged_status === 'rejected')
-                            <span class="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-800 text-xs">Ditolak</span>
-                        @endif
+                <div class="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded flex justify-between items-start gap-4">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-200">Kontraktor Ditugaskan</h4>
+                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $complaint->contractor->name }} @if($complaint->contractor->company_name)<span class="text-gray-500">({{ $complaint->contractor->company_name }})</span>@endif</div>
+                        <div class="text-sm text-gray-600">{{ $complaint->contractor->phone }} @if($complaint->contractor->email) &middot; {{ $complaint->contractor->email }}@endif</div>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-2">
+                        <div>
+                            @if($complaint->acknowledged_status === 'pending')
+                                <span class="inline-flex items-center px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs">Belum Diterima</span>
+                            @elseif($complaint->acknowledged_status === 'accepted')
+                                <span class="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-800 text-xs">Diterima</span>
+                            @elseif($complaint->acknowledged_status === 'rejected')
+                                <span class="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-800 text-xs">Ditolak</span>
+                            @endif
+                        </div>
+                        <div class="flex gap-2">
+                            @if(auth()->check() && auth()->user()->role === 'kontraktor' && $isAssignedToThisUser && $complaint->acknowledged_status === 'pending')
+                                <form action="{{ route('complaints.acknowledge', $complaint) }}" method="POST" class="flex gap-2">
+                                    @csrf
+                                    <button type="submit" name="acknowledge" value="accepted" class="px-3 py-1 bg-green-600 text-white rounded text-sm">Terima</button>
+                                    <button type="submit" name="acknowledge" value="rejected" class="px-3 py-1 bg-red-600 text-white rounded text-sm" onclick="return confirm('Tolak tugasan ini?');">Tolak</button>
+                                </form>
+                            @endif
+
+                            @if(auth()->check() && auth()->user()->role === 'kontraktor' && $isAssignedToThisUser)
+                                <a href="{{ route('complaints.work-order', $complaint) }}" class="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Work Order</a>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 @endif
 
-                @php
-                    $isAssignedToThisUser = false;
-                    if (auth()->check()) {
-                        $user = auth()->user();
-                        // If this user is linked to a Contractor record, compare against contractor.id
-                        if (method_exists($user, 'contractor') && $user->contractor) {
-                            $isAssignedToThisUser = ($complaint->assigned_to == $user->contractor->id);
-                        } else {
-                            // fallback: some setups store user id in assigned_to
-                            $isAssignedToThisUser = ($complaint->assigned_to == $user->id);
-                        }
-                    }
-                @endphp
-                @if(auth()->check() && auth()->user()->role === 'kontraktor' && $isAssignedToThisUser && $complaint->acknowledged_status === 'pending')
-                    <form action="{{ route('complaints.acknowledge', $complaint) }}" method="POST" class="mt-4 flex gap-3">
-                        @csrf
-                        <button type="submit" name="acknowledge" value="accepted" class="px-4 py-2 bg-green-600 text-white rounded">Terima Tugasan</button>
-                        <button type="submit" name="acknowledge" value="rejected" class="px-4 py-2 bg-red-600 text-white rounded" onclick="return confirm('Tolak tugasan ini?');">Tolak Tugasan</button>
-                    </form>
-                @endif
+                {{-- Acknowledgement and download actions are in the contractor card above --}}
             </div>
         </div>
 
@@ -140,10 +172,7 @@
             </div>
         @endif
 
-        <div class="mt-6 flex gap-3">
-            <a href="{{ route('complaints.edit', $complaint) }}" class="px-4 py-2 bg-yellow-500 text-white rounded">Edit</a>
-            <a href="{{ route('complaints.index') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded">Kembali</a>
-        </div>
+    {{-- actions moved to header for a cleaner layout --}}
     </div>
 
     {{-- Progress updates --}}
@@ -161,22 +190,36 @@
             })->orderBy('name')->get();
         @endphp
         @if($schoolContractors->count())
-        <form action="{{ route('complaints.assign', $complaint) }}" method="POST">
-            @csrf
-            <div class="mb-3">
-                <label class="block text-sm text-gray-600 mb-2">Pilih Kontraktor</label>
-                <select name="contractor_id" class="border rounded p-2 w-full">
-                    <option value="">-- Pilih --</option>
-                    @foreach($schoolContractors as $sc)
-                        <option value="{{ $sc->id }}" {{ $complaint->assigned_to == $sc->id ? 'selected' : '' }}>{{ $sc->name }} ({{ $sc->company_name }})</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex gap-3">
-                <button class="px-4 py-2 bg-blue-600 text-white rounded">Tugaskan</button>
-                <a href="{{ route('complaints.index') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded">Kembali</a>
-            </div>
-        </form>
+            @if(is_null($complaint->assigned_to))
+                <form action="{{ route('complaints.assign', $complaint) }}" method="POST">
+                    @csrf
+                    <div class="mb-3">
+                        <label class="block text-sm text-gray-600 mb-2">Pilih Kontraktor</label>
+                        <select name="contractor_id" class="border rounded p-2 w-full">
+                            <option value="">-- Pilih --</option>
+                            @foreach($schoolContractors as $sc)
+                                <option value="{{ $sc->id }}" {{ $complaint->assigned_to == $sc->id ? 'selected' : '' }}>{{ $sc->name }} ({{ $sc->company_name }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="px-4 py-2 bg-blue-600 text-white rounded">Tugaskan</button>
+                        <a href="{{ route('complaints.index') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded">Kembali</a>
+                    </div>
+                </form>
+            @else
+                <div class="mb-3">
+                    <label class="block text-sm text-gray-600 mb-2">Kontraktor Dipilih</label>
+                    <div class="p-3 bg-gray-50 rounded">{{ $complaint->contractor->name }} @if($complaint->contractor->company_name) ({{ $complaint->contractor->company_name }}) @endif</div>
+                </div>
+                <div class="flex gap-3">
+                    <form action="{{ route('complaints.unassign', $complaint) }}" method="POST" onsubmit="return confirm('Nyah-tugaskan kontraktor dari aduan ini?');">
+                        @csrf
+                        <button class="px-4 py-2 bg-red-600 text-white rounded">Unassign</button>
+                    </form>
+                    <a href="{{ route('complaints.index') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded">Kembali</a>
+                </div>
+            @endif
         @else
             <div class="text-sm text-gray-500">Tiada kontraktor berdaftar untuk sekolah ini.</div>
         @endif

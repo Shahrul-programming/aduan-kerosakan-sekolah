@@ -113,43 +113,20 @@ Sistem ini membolehkan guru membuat aduan kerosakan di sekolah, kemudian dipanta
   - Baru  
   - Dalam Semakan  
   - Assigned  
-  - Dalam Proses  
   - Selesai  
 
 
 ## 🗄️ Struktur Database (Cadangan)
-
-### Jadual Utama
-1. **users**
-   - id  
-   - name  
    - email  
    - password  
-   - role (super_admin, pengurusan, guru, kontraktor)  
-   - school_id (nullable untuk super admin)  
-   - phone (auto capture masa QR scan)  
-   - created_at, updated_at  
-
 2. **schools**
    - id  
-   - name (nama sekolah)  
-   - code (kod sekolah)  
-   - address  
-   - principal_name  
    - principal_phone  
    - hem_name (nama PK HEM)  
-   - hem_phone (no WhatsApp PK HEM)  
-   - qr_code (unik untuk daftar guru)  
-   - created_at, updated_at  
 
 3. **complaints**
-   - id  
-   - complaint_number (unik, contoh: ADUAN-2025-0001)  
    - school_id  
    - user_id (guru yang buat aduan)  
-   - category (elektrik, air, bangunan, ict, dll)  
-   - description  
-   - image (nullable)  
    - video (nullable)  
    - priority (tinggi/sederhana/rendah)  
    - status (baru, semakan, assigned, proses, selesai)  
@@ -322,5 +299,6 @@ Proses bila guru scan QR → sistem capture nombor WhatsApp → paparkan borang 
 1. **Pengurusan Sekolah** → buka dashboard → generate QR → download & beri QR pada guru.  
 2. **Guru** → scan QR → sistem auto-capture nombor WhatsApp → isi borang daftar → akaun siap.  
 3. **Guru login** → boleh buat aduan.  
-#   a d u a n - k e r o s a k a n - s e k o l a h  
+#   a d u a n - k e r o s a k a n - s e k o l a h 
+ 
  

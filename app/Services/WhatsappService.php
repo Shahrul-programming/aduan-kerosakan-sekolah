@@ -14,19 +14,81 @@ class WhatsappService
      */
     public static function sendMessage($to, $message)
     {
-        try {
-            // TODO: Implement actual WhatsApp API integration
-            // For now, we'll just log the message
-            Log::info("WhatsApp Message Sent", [
+        // Backward-compatible synchronous send
+        return self::sendMessageSync($to, $message);
+    }
+
+    /**
+     * Synchronous send (used by health/test and job handler)
+     */
+    public static function sendMessageSync($to, $message)
+    {
+        // Normalize phone number to international format expected by gateway
+        $to = preg_replace('/[^0-9]/', '', (string) $to);
+        if (!$to) {
+            Log::warning('WhatsApp sendMessage skipped: empty number');
+            return false;
+        }
+
+        $gatewayUrl = config('whatsapp.gateway_url');
+        $gatewayToken = config('whatsapp.gateway_token');
+        $timeout = (int) config('whatsapp.timeout', 10);
+
+        // If gateway not configured, fall back to logging (no-op integration)
+        if (empty($gatewayUrl) || empty($gatewayToken)) {
+            Log::info('WhatsApp (dry-run) Message Sent', [
                 'to' => $to,
                 'message' => $message,
                 'timestamp' => now()
             ]);
-            
             return true;
-        } catch (\Exception $e) {
-            Log::error("Failed to send WhatsApp message: " . $e->getMessage());
+        }
+
+        try {
+            // Use Laravel's HTTP client
+            $response = \Illuminate\Support\Facades\Http::withToken($gatewayToken)
+                ->timeout($timeout)
+                ->asJson()
+                ->post(rtrim($gatewayUrl, '/') . '/send', [
+                    'to' => $to,
+                    'message' => $message,
+                ]);
+
+            if ($response->successful()) {
+                Log::info('WhatsApp gateway sent', [
+                    'to' => $to,
+                    'status' => $response->status(),
+                ]);
+                return true;
+            }
+
+            Log::error('WhatsApp gateway error', [
+                'to' => $to,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
             return false;
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp gateway exception: ' . $e->getMessage(), [
+                'to' => $to,
+            ]);
+            return false;
+        }
+    }
+
+    /**
+     * Queue send with retries (used for normal notifications)
+     */
+    public static function sendMessageAsync($to, $message)
+    {
+        try {
+            \App\Jobs\SendWhatsappMessage::dispatch((string)$to, (string)$message)
+                ->onQueue('notifications');
+            return true;
+        } catch (\Throwable $e) {
+            Log::error('Failed to dispatch WhatsApp job: ' . $e->getMessage());
+            // Fallback: try sync to not lose message
+            return self::sendMessageSync($to, $message);
         }
     }
 
@@ -50,7 +112,7 @@ class WhatsappService
             ->get();
 
         foreach ($pengurusanUsers as $user) {
-            self::sendMessage($user->phone, $message);
+            self::sendMessageAsync($user->phone, $message);
         }
     }
 
@@ -71,7 +133,7 @@ class WhatsappService
                    "📄 Deskripsi: {$complaint->description}\n\n" .
                    "Sila login ke sistem untuk menerima atau menolak tugasan ini.";
 
-        self::sendMessage($complaint->contractor->phone, $message);
+    self::sendMessageAsync($complaint->contractor->phone, $message);
     }
 
     /**
@@ -95,7 +157,7 @@ class WhatsappService
             ->get();
 
         foreach ($pengurusanUsers as $user) {
-            self::sendMessage($user->phone, $message);
+            self::sendMessageAsync($user->phone, $message);
         }
     }
 
@@ -119,7 +181,7 @@ class WhatsappService
         ->get();
 
         foreach ($users as $user) {
-            self::sendMessage($user->phone, $message);
+            self::sendMessageAsync($user->phone, $message);
         }
     }
 
@@ -144,7 +206,7 @@ class WhatsappService
         ->get();
 
         foreach ($users as $user) {
-            self::sendMessage($user->phone, $message);
+            self::sendMessageAsync($user->phone, $message);
         }
     }
 
@@ -162,7 +224,62 @@ class WhatsappService
      */
     public static function generateQRCode($phoneNumber)
     {
-        // TODO: Implement actual QR generation logic
-        return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkAQAAAABYmaj5AAAAiklEQVR4Ae3PAQ0AAAwCwdm/9HI83BLIOdw5c5QIEc...";
+        $gatewayUrl = config('whatsapp.gateway_url');
+        $gatewayToken = config('whatsapp.gateway_token');
+        $timeout = (int) config('whatsapp.timeout', 10);
+
+        // If gateway not configured, return an empty string (UI will show generate option)
+        if (empty($gatewayUrl) || empty($gatewayToken)) {
+            \Log::warning('generateQRCode: gateway not configured');
+            return '';
+        }
+
+        try {
+            $resp = \Illuminate\Support\Facades\Http::withToken($gatewayToken)
+                ->timeout($timeout)
+                ->acceptJson()
+                ->get(rtrim($gatewayUrl, '/') . '/qr', [
+                    'number' => preg_replace('/[^0-9]/', '', (string) $phoneNumber),
+                ]);
+
+            if (!$resp->successful()) {
+                \Log::error('generateQRCode: gateway error', ['status' => $resp->status(), 'body' => $resp->body()]);
+                return '';
+            }
+
+            // Try decode JSON { qr: '...', type: 'data-url|base64' }
+            $body = $resp->body();
+            $data = null;
+            try { $data = $resp->json(); } catch (\Throwable $e) { /* may not be JSON */ }
+
+            $qr = '';
+            if (is_array($data)) {
+                if (!empty($data['qr'])) {
+                    $qr = (string) $data['qr'];
+                } elseif (!empty($data['image'])) {
+                    $qr = (string) $data['image'];
+                } elseif (!empty($data['data'])) {
+                    $qr = (string) $data['data'];
+                }
+            }
+
+            if (!$qr) {
+                // Fallback: body might already be a data URL or base64
+                $qr = trim($body);
+            }
+
+            // Ensure data URL prefix for <img src>
+            if ($qr && !str_starts_with($qr, 'data:image')) {
+                // If it's raw base64, prefix
+                if (preg_match('/^[A-Za-z0-9+\/]+=*$/', str_replace(["\r","\n"], '', $qr))) {
+                    $qr = 'data:image/png;base64,' . $qr;
+                }
+            }
+
+            return $qr;
+        } catch (\Throwable $e) {
+            \Log::error('generateQRCode: exception ' . $e->getMessage());
+            return '';
+        }
     }
 }

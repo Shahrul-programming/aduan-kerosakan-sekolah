@@ -68,6 +68,7 @@ Route::middleware('auth')->group(function () {
     // admin-only pages (e.g. review/prioritize) remain under role-restricted groups.
     // complaints resource moved to top-level auth group
     Route::post('complaints/{complaint}/assign', [App\Http\Controllers\ComplaintController::class, 'assign'])->name('complaints.assign');
+    Route::post('complaints/{complaint}/unassign', [App\Http\Controllers\ComplaintController::class, 'unassign'])->name('complaints.unassign');
     // (compatibility route removed)
     Route::resource('complaints', App\Http\Controllers\ComplaintController::class);
 });
@@ -80,6 +81,8 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::resource('schools', App\Http\Controllers\SchoolController::class);
     // Ajax endpoint to get login info for a specific school (used by modal)
     Route::get('/schools/{school}/login-info', [App\Http\Controllers\SchoolController::class, 'loginInfo'])->name('schools.login-info');
+    // Lantik admin sekolah (Pilihan A)
+    Route::post('/schools/{school}/assign-admin', [App\Http\Controllers\SchoolController::class, 'assignAdmin'])->name('schools.assign-admin');
     // complaints resource moved to top-level auth group; keep admin pages above
     
     // User management (super admin) - user list and other super-admin-only routes live here.
@@ -93,6 +96,7 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     Route::delete('/whatsapp/{whatsappNumber}', [\App\Http\Controllers\WhatsappController::class, 'destroy'])->name('whatsapp.destroy');
     Route::post('/whatsapp/{whatsappNumber}/generate-qr', [\App\Http\Controllers\WhatsappController::class, 'generateQR'])->name('whatsapp.generate-qr');
     Route::post('/whatsapp/{whatsappNumber}/test', [\App\Http\Controllers\WhatsappController::class, 'testConnection'])->name('whatsapp.test');
+    Route::get('/whatsapp/health', [\App\Http\Controllers\WhatsappController::class, 'health'])->name('whatsapp.health');
     
     // Laporan & Dashboard Analitik
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
@@ -209,6 +213,10 @@ Route::middleware(['auth', 'role:school_admin'])->group(function () {
 Route::middleware(['auth', 'role:kontraktor'])->group(function () {
     Route::post('complaints/{complaint}/progress', [\App\Http\Controllers\ProgressUpdateController::class, 'store'])->name('complaints.progress.store');
     Route::post('complaints/{complaint}/acknowledge', [\App\Http\Controllers\ComplaintController::class, 'acknowledge'])->name('complaints.acknowledge');
+    // Allow contractors to update status for complaints assigned to them
+    Route::patch('complaints/{complaint}/status/contractor', [\App\Http\Controllers\ComplaintController::class, 'updateStatus'])->name('complaints.update.status.contractor');
+    // Download work order (PDF) for assigned contractor
+    Route::get('complaints/{complaint}/work-order', [\App\Http\Controllers\ComplaintController::class, 'workOrderDownload'])->name('complaints.work-order');
 });
 
 require __DIR__.'/auth.php';

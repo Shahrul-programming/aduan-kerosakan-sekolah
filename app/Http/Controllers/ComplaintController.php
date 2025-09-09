@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Contractor;
 use App\Services\NotificationService;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 class ComplaintController extends Controller
 {
@@ -89,6 +90,16 @@ class ComplaintController extends Controller
         $validated['complaint_number'] = $this->generateComplaintNumber();
         $validated['user_id'] = auth()->id();
         $validated['reported_by'] = auth()->id();
+        // capture reporter phone if provided in form or from user profile
+        // only include the field if the column exists (migration may not have been run yet)
+        try {
+            if (Schema::hasColumn('complaints', 'reporter_phone')) {
+                $validated['reporter_phone'] = $request->input('reporter_phone', auth()->user()->phone ?? null);
+            }
+        } catch (\Exception $e) {
+            // If DB connection or schema check fails, skip adding the field to avoid SQL errors
+            \Log::warning('Schema check failed for reporter_phone: ' . $e->getMessage());
+        }
         $validated['status'] = 'baru';
         $validated['reported_at'] = now();
 
@@ -218,18 +229,80 @@ class ComplaintController extends Controller
 
         // Ensure contractor belongs to the same school
         $contractor = \App\Models\Contractor::find($data['contractor_id']);
-        if (!$contractor || $contractor->school_id !== $complaint->school_id) {
+        // Accept contractor if they have direct school_id match OR are linked via pivot table
+        $belongsToSchool = false;
+        if ($contractor) {
+            if ($contractor->school_id == $complaint->school_id) {
+                $belongsToSchool = true;
+            } else {
+                $belongsToSchool = $contractor->schools()->where('schools.id', $complaint->school_id)->exists();
+            }
+        }
+
+        if (! $contractor || ! $belongsToSchool) {
             return back()->withErrors(['contractor_id' => 'Kontraktor tidak berdaftar dengan sekolah ini.']);
+        }
+
+        // Prevent double-assignment: only allow assign when complaint is not already assigned
+        if (! is_null($complaint->assigned_to) && $complaint->assigned_to != $contractor->id) {
+            return back()->withErrors(['contractor_id' => 'Aduan ini sudah ditugaskan kepada kontraktor lain. Sila nyah- tugaskan terlebih dahulu jika mahu menukar.']);
         }
 
         $complaint->assigned_to = $contractor->id;
         $complaint->status = 'assigned';
+        // persist who assigned and when if the columns exist (migration may not have been run)
+        try {
+            if (Schema::hasColumn('complaints', 'assigned_by')) {
+                $complaint->assigned_by = auth()->id();
+            }
+            if (Schema::hasColumn('complaints', 'assigned_at')) {
+                $complaint->assigned_at = now();
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Schema check failed while assigning complaint: ' . $e->getMessage());
+        }
         $complaint->save();
 
         \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'assign kontraktor', $complaint->id);
         NotificationService::sendAssignmentNotification($complaint->fresh());
 
         return back()->with('success', 'Kontraktor berjaya ditugaskan.');
+    }
+
+    /**
+     * Unassign contractor from complaint (school admin only)
+     */
+    public function unassign(Request $request, \App\Models\Complaint $complaint)
+    {
+        if (auth()->user()->role !== 'school_admin' || auth()->user()->school_id !== $complaint->school_id) {
+            abort(403);
+        }
+
+        // Only unassign if currently assigned
+        if (is_null($complaint->assigned_to)) {
+            return back()->withErrors(['general' => 'Aduan ini tiada kontraktor ditugaskan.']);
+        }
+
+        $old = $complaint->assigned_to;
+        $complaint->assigned_to = null;
+        $complaint->status = 'baru';
+        // only clear assigned_by/assigned_at if the columns exist
+        try {
+            if (Schema::hasColumn('complaints', 'assigned_by')) {
+                $complaint->assigned_by = null;
+            }
+            if (Schema::hasColumn('complaints', 'assigned_at')) {
+                $complaint->assigned_at = null;
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Schema check failed while unassigning complaint: ' . $e->getMessage());
+        }
+        $complaint->save();
+
+        \App\Http\Controllers\ActivityLogController::log(auth()->id(), 'unassign kontraktor ('.$old.')', $complaint->id);
+        NotificationService::sendAssignmentNotification($complaint->fresh());
+
+        return back()->with('success', 'Kontraktor telah dinyah-tugaskan daripada aduan ini.');
     }
 
     // (legacy compatibility handler removed)
@@ -292,27 +365,53 @@ class ComplaintController extends Controller
     {
         $complaint = \App\Models\Complaint::findOrFail($id);
         $user = auth()->user();
-        // Determine whether the complaint is assigned to this contractor account
-        $isAssignedToThisUser = false;
-        if (method_exists($user, 'contractor') && $user->contractor) {
-            $isAssignedToThisUser = ($complaint->assigned_to == $user->contractor->id);
-        } else {
-            $isAssignedToThisUser = ($complaint->assigned_to == $user->id);
-        }
-        if ($user->role !== 'kontraktor' || !$isAssignedToThisUser) {
+        // Only contractors may acknowledge. Allow acknowledgement when:
+        // - the complaint is already assigned to this contractor, OR
+        // - assigned_to is NULL but the contractor is associated with the complaint's school (direct or via pivot)
+        if ($user->role !== 'kontraktor') {
             abort(403);
         }
+
+        $contractor = method_exists($user, 'contractor') ? $user->contractor : null;
+
+        $canAcknowledge = false;
+        if ($contractor) {
+            if ($complaint->assigned_to == $contractor->id) {
+                $canAcknowledge = true;
+            } elseif (is_null($complaint->assigned_to)) {
+                // check contractor-school association (direct school_id or pivot)
+                if ($contractor->school_id == $complaint->school_id || $contractor->schools()->where('schools.id', $complaint->school_id)->exists()) {
+                    $canAcknowledge = true;
+                }
+            }
+        }
+
+        if (!$canAcknowledge) {
+            abort(403);
+        }
+
         $status = $request->input('acknowledge');
         if (!in_array($status, ['accepted', 'rejected'])) {
             return back()->with('error', 'Status tidak sah.');
         }
+
+        // Persist acknowledge info
         $complaint->acknowledged_status = $status;
         $complaint->acknowledged_at = now();
+
+        // If accepted, ensure assigned_to points to this contractor and status is 'assigned'
+        if ($status === 'accepted' && $contractor) {
+            $complaint->assigned_to = $contractor->id;
+            $complaint->status = 'assigned';
+        }
+
         $complaint->save();
+
         // Log aktiviti dan hantar notifikasi
         $action = $status === 'accepted' ? 'Terima tugasan' : 'Tolak tugasan';
         \App\Http\Controllers\ActivityLogController::log(auth()->id(), $action, $complaint->id);
         NotificationService::sendAcknowledgeNotification($complaint);
+
         return back()->with('success', 'Status acknowledge dikemaskini.');
     }
 
@@ -321,13 +420,53 @@ class ComplaintController extends Controller
      */
     public function updateStatus(Request $request, \App\Models\Complaint $complaint)
     {
+        // Debug logging: capture auth and request context to help diagnose 403 from browser
+        try {
+            \Log::info('updateStatus called', [
+                'user_id' => auth()->id(),
+                'user_role' => optional(auth()->user())->role,
+                'complaint_id' => $complaint->id ?? null,
+                'request_method' => $request->method(),
+                'route_name' => \Route::currentRouteName(),
+                'ip' => request()->ip(),
+            ]);
+        } catch (\Exception $e) {
+            // swallow logging errors to avoid masking the real error
+        }
+
         $request->validate([
             'status' => 'required|in:pending,semakan,assigned,in_progress,completed'
         ]);
 
+        // Authorization: allow school_admin for the complaint school and super_admin as before.
+        // Additionally allow a contractor to update status only if they are the assigned contractor.
+        $user = auth()->user();
+        if ($user->role === 'super_admin') {
+            // allow
+        } elseif ($user->role === 'school_admin') {
+            if ($user->school_id !== $complaint->school_id) {
+                abort(403);
+            }
+        } elseif ($user->role === 'kontraktor') {
+            // allow only if contractor is assigned_to this complaint
+            $contractor = method_exists($user, 'contractor') ? $user->contractor : null;
+            if (! $contractor || $complaint->assigned_to != $contractor->id) {
+                abort(403);
+            }
+        } else {
+            abort(403);
+        }
+
         $complaint->update(['status' => $request->status]);
-        
-        return response()->json(['success' => true, 'message' => 'Status updated successfully']);
+
+        // If the caller expects JSON keep returning JSON (API/AJAX). For normal
+        // browser form submissions, redirect back with a flash message so the
+        // user sees friendly feedback instead of raw JSON.
+        if ($request->wantsJson() || $request->ajax() || $request->isJson()) {
+            return response()->json(['success' => true, 'message' => 'Status updated successfully']);
+        }
+
+        return redirect()->back()->with('success', 'Status updated successfully.');
     }
 
     /**
@@ -351,5 +490,38 @@ class ComplaintController extends Controller
     {
         $contractors = \App\Models\User::where('role', 'kontraktor')->get();
         return view('complaints.assign_form', compact('complaint', 'contractors'));
+    }
+
+    /**
+     * Generate and download a PDF work order for the assigned contractor.
+     */
+    public function workOrderDownload(\App\Models\Complaint $complaint)
+    {
+        $user = auth()->user();
+        if ($user->role !== 'kontraktor') {
+            abort(403);
+        }
+
+        $contractor = method_exists($user, 'contractor') ? $user->contractor : null;
+        // allow if this contractor is assigned_to the complaint
+        if (! $contractor || $complaint->assigned_to != $contractor->id) {
+            abort(403);
+        }
+
+        // Load full complaint with relations needed for the document
+        $complaint = \App\Models\Complaint::with(['school', 'user', 'contractor'])->findOrFail($complaint->id);
+
+        // Prepare data for view
+        $data = [
+            'complaint' => $complaint,
+            'contractor' => $contractor,
+            'assigned_at' => optional($complaint->assigned_at ?? $complaint->updated_at)->format('d/m/Y H:i'),
+            'work_order_date' => now()->format('d/m/Y'),
+            'generated_by' => $user->name,
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('complaints.work_order_pdf', $data);
+        $filename = sprintf('work-order-%s-%s.pdf', $complaint->complaint_number, $complaint->id);
+        return $pdf->download($filename);
     }
 }

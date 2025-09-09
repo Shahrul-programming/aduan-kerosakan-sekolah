@@ -190,14 +190,14 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <a href="{{ route('complaints.show', $complaint) }}" class="text-blue-600 hover:text-blue-900 mr-3">Lihat</a>
                                         @if($complaint->status === 'pending')
-                                        <form method="POST" action="{{ route('complaints.update-status', $complaint) }}" class="inline">
+                                        <form method="POST" action="{{ route('complaints.update.status.contractor', $complaint) }}" class="inline">
                                             @csrf
                                             @method('PATCH')
                                             <input type="hidden" name="status" value="in_progress">
                                             <button type="submit" class="text-green-600 hover:text-green-900">Mula Kerja</button>
                                         </form>
                                         @elseif($complaint->status === 'in_progress')
-                                        <form method="POST" action="{{ route('complaints.update-status', $complaint) }}" class="inline">
+                                        <form method="POST" action="{{ route('complaints.update.status.contractor', $complaint) }}" class="inline">
                                             @csrf
                                             @method('PATCH')
                                             <input type="hidden" name="status" value="completed">

@@ -105,6 +105,14 @@
 
         <div class="lg:col-span-5 space-y-4">
             <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
+                <h3 class="text-md font-medium text-gray-900 dark:text-gray-100">🩺 Gateway Health</h3>
+                <p class="text-sm text-gray-500 mt-2">Semak status sambungan ke WhatsApp gateway yang dikonfigurasi dalam .env.</p>
+                <div class="mt-3 flex gap-2">
+                    <a href="{{ route('whatsapp.health') }}" class="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-md">Periksa Gateway</a>
+                    <div class="text-xs text-gray-500 self-center">URL: {{ config('whatsapp.gateway_url') ? parse_url(config('whatsapp.gateway_url'), PHP_URL_HOST) : '– tidak ditetapkan –' }}</div>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
                 <h3 class="text-md font-medium text-gray-900 dark:text-gray-100">⏰ Auto-Reminder System</h3>
                 <p class="text-sm text-gray-500 mt-2">📋 Peringatan automatik dihantar untuk:</p>
                 <ul class="list-disc list-inside text-sm text-gray-600 mt-2">

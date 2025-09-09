@@ -136,6 +136,17 @@
                                 <span class="text-gray-600">Priority Issues:</span>
                                 <span class="font-medium text-red-600">{{ $urgentComplaints }} urgent</span>
                             </div>
+                            @if(optional(auth()->user()->school)->code)
+                            <div class="pt-3 border-t mt-3">
+                                <label class="block text-sm text-gray-600">Pautan Pendaftaran Guru (Self-register)</label>
+                                @php $dashRegisterUrl = url('/daftar-guru/' . auth()->user()->school->code); @endphp
+                                <div class="flex gap-2 items-center mt-2">
+                                    <input type="text" id="dashRegisterLink" class="w-full rounded border p-2 text-sm" value="{{ $dashRegisterUrl }}" readonly>
+                                    <button type="button" onclick="copyDashRegisterLink()" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">Salin</button>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-2">Semua pengguna yang mendaftar melalui pautan ini akan menjadi guru untuk sekolah ini.</div>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -302,6 +313,37 @@
         function assignContractor(id) {
             // Simple redirect to assign page - you can make this more sophisticated
             window.location.href = `/complaints/${id}/assign`;
+        }
+
+        // Copy register link from dashboard
+        function copyDashRegisterLink(){
+            const el = document.getElementById('dashRegisterLink');
+            if(!el) return;
+            const val = el.value || el.getAttribute('value');
+            if(!val) return;
+            if(navigator.clipboard && navigator.clipboard.writeText){
+                navigator.clipboard.writeText(val).then(()=>{
+                    alert('Pautan disalin ke papan klip');
+                }).catch(()=>{
+                    fallbackCopyText(val);
+                });
+            } else {
+                fallbackCopyText(val);
+            }
+        }
+
+        function fallbackCopyText(text){
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try{
+                document.execCommand('copy');
+                alert('Pautan disalin ke papan klip');
+            }catch(e){
+                alert('Salin gagal — sila salin secara manual');
+            }
+            document.body.removeChild(textarea);
         }
 
         // Auto-refresh every 30 seconds

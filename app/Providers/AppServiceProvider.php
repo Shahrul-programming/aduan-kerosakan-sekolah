@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Ensure PHP and Carbon use the application timezone from config
+        $timezone = config('app.timezone', 'UTC');
+        if ($timezone) {
+            date_default_timezone_set($timezone);
+        }
     }
 }

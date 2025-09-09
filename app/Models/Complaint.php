@@ -12,7 +12,7 @@ class Complaint extends Model
 
     protected $fillable = [
     'complaint_number', 'title', 'school_id', 'user_id', 'reported_by', 'category', 'description', 'image', 'video', 'priority', 'status', 'assigned_to',
-    'acknowledged_status', 'acknowledged_at', 'reported_at'
+    'acknowledged_status', 'acknowledged_at', 'reported_at', 'reporter_phone', 'assigned_by', 'assigned_at'
     ];
 
     public function school()
@@ -37,8 +37,22 @@ class Complaint extends Model
         return $this->belongsTo(Contractor::class, 'assigned_to');
     }
 
+    public function assigner()
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
+
     public function progressUpdates()
     {
         return $this->hasMany(ProgressUpdate::class);
     }
+
+    /**
+     * Cast datetime fields to Carbon instances for easy formatting in views.
+     */
+    protected $casts = [
+        'reported_at' => 'datetime',
+        'acknowledged_at' => 'datetime',
+        'assigned_at' => 'datetime',
+    ];
 }
